@@ -13,7 +13,9 @@ import {
 	UnloadTilesPlugin,
 	GLTFExtensionsPlugin,
 	BatchedTilesPlugin,
+	// DebugTilesPlugin,
 	CesiumIonAuthPlugin,
+	GoogleCloudAuthPlugin,
 } from '3d-tiles-renderer/plugins';
 import {
 	Scene,
@@ -21,17 +23,25 @@ import {
 	PerspectiveCamera,
 	MathUtils,
 	OrthographicCamera,
+	Vector3,
 } from 'three';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import Stats from 'three/examples/jsm/libs/stats.module.js';
+import { CSM } from "three/examples/jsm/csm/CSM";
+import { CSMHelper } from "three/examples/jsm/csm/CSMHelper";
 
-let controls, scene, renderer, tiles, transition;
+let controls, scene, renderer, tiles, transition, csm, csmHelper;
 let statsContainer, stats;
+const _uniformArray= [];
+const _logArray = [];
+const _splitBreaksArray = [];
 
 const params = {
 
 	orthographic: false,
+	updateCSM: true,
+	showCSMShadowBounds: true,
 
 	enableCacheDisplay: false,
 	enableRendererStats: false,
@@ -56,7 +66,11 @@ function reinstantiateTiles() {
 	}
 
 	tiles = new TilesRenderer();
-	tiles.registerPlugin( new CesiumIonAuthPlugin( { apiToken: import.meta.env.VITE_ION_KEY, assetId: '2275207', autoRefreshToken: true } ) );
+	// const debugTilesPlug = new DebugTilesPlugin();
+	// debugTilesPlug.displayBoxBounds = true;
+	// tiles.registerPlugin (debugTilesPlug);
+	tiles.registerPlugin( new CesiumIonAuthPlugin( { apiToken: import.meta.env.VITE_ION_KEY, assetId: '2275207', autoRefreshToken: true } ));
+	// tiles.registerPlugin( new GoogleCloudAuthPlugin({ apiToken: import.meta.env.VITE_GOOGLE_API_TOKEN, useRecommendedSettings: true }) );
 	tiles.registerPlugin( new TileCompressionPlugin() );
 	tiles.registerPlugin( new UpdateOnChangePlugin() );
 	tiles.registerPlugin( new UnloadTilesPlugin() );
@@ -83,6 +97,50 @@ function reinstantiateTiles() {
 
 	tiles.setResolutionFromRenderer( transition.camera, renderer );
 	tiles.setCamera( transition.camera );
+	csm = new CSM({
+		cascades: 12,
+		maxFar: 1000,
+		mode: "custom",
+		camera: transition.camera,
+		lightMargin: 50000,
+		shadowMapSize: 4096,
+		lightdirection: new Vector3(10,1,100).multiplyScalar(-1).normalize(),
+		parent: scene,
+		customSplitsCallback: (cascadesAmount, near, far, breaks) => {
+				// in case near is negative or 0 to avoid division by zero and other shenanigans...
+				near = Math.max(near, 0.001);
+				_uniformArray.length = 0;
+				_logArray.length = 0;
+				_splitBreaksArray.length = 0;
+				breaks.length = 0;
+				for (let i = 1; i < cascadesAmount; i++) {
+						_logArray.push((near * (far / near) ** (i / cascadesAmount)) / far);
+						_uniformArray.push((near + ((far - near) * i) / cascadesAmount) / far);
+				}
+				_logArray.push(1);
+				_uniformArray.push(1);
+				for (let i = 1; i < cascadesAmount; i++) {
+						_splitBreaksArray.push(MathUtils.lerp(_uniformArray[i - 1], _logArray[i - 1], 0.9));
+				}
+				_splitBreaksArray.push(1);
+				breaks.push(..._splitBreaksArray);
+		},
+	});
+	console.log(csm.lightDirection);
+
+	csmHelper = new CSMHelper(csm);
+	// const debug = false;
+	csmHelper.visible = true;
+	csmHelper.displayFrustum = true;
+	csmHelper.displayPlanes = true;
+	csmHelper.displayShadowBounds = true;
+	csmHelper.raycast = () => false;
+	scene.add(csmHelper);
+
+	for (const light of csm.lights) {
+		tiles.setResolutionFromRenderer( light.shadow.camera, renderer );
+		tiles.setCamera( light.shadow.camera );
+	}
 
 	controls.setTilesRenderer( tiles );
 
@@ -92,6 +150,7 @@ function init() {
 
 	// renderer
 	renderer = new WebGLRenderer( { antialias: true } );
+	renderer.shadowMap.enabled = true;
 	renderer.setClearColor( 0x151c1f );
 	document.body.appendChild( renderer.domElement );
 
@@ -149,6 +208,13 @@ function init() {
 
 		transition.toggle();
 
+	} );
+
+	gui.add( params, 'updateCSM' ).onChange( v => {
+		// updateCSM = v;
+	} );
+	gui.add( params, 'showCSMShadowBounds' ).onChange( v => {
+		csmHelper.visible = v;
 	} );
 
 	const mapsOptions = gui.addFolder( 'Google Photorealistic Tiles' );
@@ -307,16 +373,57 @@ function animate() {
 	if ( ! tiles ) return;
 
 	controls.enabled = ! transition.animating;
+	if (params.updateCSM) {
+
+		// custom adjustment of the far plane of the shadow lights
+		for (let i = 0; i < csm.lights.length; i++) {
+			const light = csm.lights[i];
+			tiles.setResolutionFromRenderer( light.shadow.camera, renderer );
+			tiles.setCamera( light.shadow.camera );
+				const camera = transition.camera;
+				const camSplitNear = i == 0 ? 0 : _splitBreaksArray[i - 1] * camera.far;
+					const camSplitFar = _splitBreaksArray[i] * camera.far;
+
+				light.shadow.normalBias = Math.sqrt(camSplitFar + 1) * 0.014;
+					light.shadow.bias = (camSplitFar + 1) * 0.00000000001;
+
+				if (camera instanceof PerspectiveCamera) {
+							const halfFovTan = Math.tan(MathUtils.degToRad(camera.fov) / 2);
+
+						// Far plane diagonal (distance between opposite far corners)
+							const farPlaneDiagonal = 2 * camSplitFar * halfFovTan * Math.sqrt(camera.aspect * camera.aspect + 1);
+
+						// Diagonal from lower left near to upper right far
+						const nearToFarDiagonal = Math.sqrt(
+								Math.pow((camSplitFar + camSplitNear) * halfFovTan, 2) * (camera.aspect * camera.aspect + 1) +
+										Math.pow(camSplitFar - camSplitNear, 2),
+							);
+
+						const maxFrustumExtend = Math.max(farPlaneDiagonal, nearToFarDiagonal);
+						light.shadow.camera.far = maxFrustumExtend + csm.lightMargin;
+				} else if (camera instanceof OrthographicCamera) {
+						const dx = (camera.right - camera.left) / camera.zoom;
+						const dy = (camera.top - camera.bottom) / camera.zoom;
+							const dz = camSplitFar - camSplitNear;
+
+						const diagonal = Math.sqrt(dx * dx + dy * dy + dz * dz);
+						light.shadow.camera.far = diagonal + csm.lightMargin;
+				}
+		}
+		csm.updateFrustums();
+		csm.update();
+		csmHelper.update();
+	}
 	controls.update();
 	transition.update();
 
 	// update options
 	const camera = transition.camera;
-	tiles.setResolutionFromRenderer( camera, renderer );
-	tiles.setCamera( camera );
 
 	// update tiles
 	camera.updateMatrixWorld();
+	tiles.setResolutionFromRenderer( camera, renderer );
+	tiles.setCamera( camera );
 	tiles.errorTarget = params.errorTarget;
 	tiles.update();
 
