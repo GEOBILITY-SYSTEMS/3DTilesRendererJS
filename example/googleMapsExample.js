@@ -372,50 +372,52 @@ function animate() {
 
 	if ( ! tiles ) return;
 
+	controls.update();
+	transition.update();
+	transition.camera.updateProjectionMatrix();
+	transition.camera.updateMatrixWorld();
+
 	controls.enabled = ! transition.animating;
 	if (params.updateCSM) {
-
+		const camera = transition.camera;
+		const mainFrustumExtend = - csm.mainFrustum.vertices.far[0].z - csm.mainFrustum.vertices.near[0].z;
+				
 		// custom adjustment of the far plane of the shadow lights
 		for (let i = 0; i < csm.lights.length; i++) {
 			const light = csm.lights[i];
 			tiles.setResolutionFromRenderer( light.shadow.camera, renderer );
 			tiles.setCamera( light.shadow.camera );
-				const camera = transition.camera;
-				const camSplitNear = i == 0 ? 0 : _splitBreaksArray[i - 1] * camera.far;
-					const camSplitFar = _splitBreaksArray[i] * camera.far;
-
-				light.shadow.normalBias = Math.sqrt(camSplitFar + 1) * 0.014;
-					light.shadow.bias = (camSplitFar + 1) * 0.00000000001;
-
-				if (camera instanceof PerspectiveCamera) {
-							const halfFovTan = Math.tan(MathUtils.degToRad(camera.fov) / 2);
-
-						// Far plane diagonal (distance between opposite far corners)
-							const farPlaneDiagonal = 2 * camSplitFar * halfFovTan * Math.sqrt(camera.aspect * camera.aspect + 1);
-
-						// Diagonal from lower left near to upper right far
-						const nearToFarDiagonal = Math.sqrt(
-								Math.pow((camSplitFar + camSplitNear) * halfFovTan, 2) * (camera.aspect * camera.aspect + 1) +
-										Math.pow(camSplitFar - camSplitNear, 2),
-							);
-
-						const maxFrustumExtend = Math.max(farPlaneDiagonal, nearToFarDiagonal);
-						light.shadow.camera.far = maxFrustumExtend + csm.lightMargin;
-				} else if (camera instanceof OrthographicCamera) {
-						const dx = (camera.right - camera.left) / camera.zoom;
-						const dy = (camera.top - camera.bottom) / camera.zoom;
-							const dz = camSplitFar - camSplitNear;
-
-						const diagonal = Math.sqrt(dx * dx + dy * dy + dz * dz);
-						light.shadow.camera.far = diagonal + csm.lightMargin;
-				}
+			const camSplitNear = i == 0 ? 0 : _splitBreaksArray[i - 1] * mainFrustumExtend;
+			const camSplitFar = _splitBreaksArray[i] * mainFrustumExtend;
+			light.shadow.normalBias = Math.sqrt(camSplitFar + 1) * 0.014;
+			light.shadow.bias = (camSplitFar + 1) * 0.00000000001;
+	  
+			if (camera instanceof PerspectiveCamera) {
+				const halfFovTan = Math.tan(MathUtils.degToRad(camera.fov) / 2);
+		
+				// Far plane diagonal (distance between opposite far corners)
+				const farPlaneDiagonal = 2 * camSplitFar * halfFovTan * Math.sqrt(camera.aspect * camera.aspect + 1);
+		
+				// Diagonal from lower left near to upper right far
+				const nearToFarDiagonal = Math.sqrt(
+					Math.pow((camSplitFar + camSplitNear) * halfFovTan, 2) * (camera.aspect * camera.aspect + 1) +
+					Math.pow(camSplitFar - camSplitNear, 2),
+				);
+				const maxFrustumExtend = Math.max(farPlaneDiagonal, nearToFarDiagonal);
+				light.shadow.camera.far = maxFrustumExtend + csm.lightMargin;
+			} else if (camera instanceof OrthographicCamera) {
+				const dx = (camera.right - camera.left) / camera.zoom;
+				const dy = (camera.top - camera.bottom) / camera.zoom;
+				const dz = camSplitFar - camSplitNear;
+				
+				const diagonal = Math.sqrt(dx * dx + dy * dy + dz * dz);
+				light.shadow.camera.far = diagonal + csm.lightMargin;
+			}
 		}
 		csm.updateFrustums();
 		csm.update();
 		csmHelper.update();
 	}
-	controls.update();
-	transition.update();
 
 	// update options
 	const camera = transition.camera;
