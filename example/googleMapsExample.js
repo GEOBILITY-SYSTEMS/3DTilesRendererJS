@@ -138,7 +138,7 @@ function reinstantiateTiles() {
 	scene.add(csmHelper);
 
 	for (const light of csm.lights) {
-		tiles.setResolutionFromRenderer( light.shadow.camera, renderer );
+		tiles.setResolution( light.shadow.camera, csm.shadowMapSize , csm.shadowMapSize );
 		tiles.setCamera( light.shadow.camera );
 	}
 
