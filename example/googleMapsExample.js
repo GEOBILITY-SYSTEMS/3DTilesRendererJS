@@ -98,12 +98,12 @@ function reinstantiateTiles() {
 	tiles.setResolutionFromRenderer( transition.camera, renderer );
 	tiles.setCamera( transition.camera );
 	csm = new CSM({
-		cascades: 12,
+		cascades: 4,
 		maxFar: 1000,
 		mode: "custom",
 		camera: transition.camera,
-		lightMargin: 50000,
-		shadowMapSize: 4096,
+		lightMargin: 1000,
+		shadowMapSize: 1024,
 		lightdirection: new Vector3(10,1,100).multiplyScalar(-1).normalize(),
 		parent: scene,
 		customSplitsCallback: (cascadesAmount, near, far, breaks) => {
