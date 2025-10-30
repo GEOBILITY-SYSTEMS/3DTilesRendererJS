@@ -863,8 +863,9 @@ export class TilesRendererBase {
 
 			}
 
-			const res = this.invokeOnePlugin( plugin => plugin.fetchData && plugin.fetchData( uri, { ...this.fetchOptions, signal } ) );
+			// Dispatch event right before starting the actual fetch
 			this.dispatchEvent( { type: 'tile-download-start', tile } );
+			const res = this.invokeOnePlugin( plugin => plugin.fetchData && plugin.fetchData( uri, { ...this.fetchOptions, signal } ) );
 			return res;
 
 		} )
@@ -882,7 +883,14 @@ export class TilesRendererBase {
 
 				} else if ( res.ok ) {
 
-					return extension === 'json' ? res.json() : res.arrayBuffer();
+					const bodyPromise = extension === 'json' ? res.json() : res.arrayBuffer();
+					return bodyPromise.then( contentResult => {
+
+						// Dispatch event once the full body has been read from the network.
+						this.dispatchEvent( { type: 'tile-download-complete', tile } );
+						return contentResult;
+
+					} );
 
 				} else {
 
@@ -903,6 +911,7 @@ export class TilesRendererBase {
 				stats.downloading --;
 				stats.parsing ++;
 				tile.__loadingState = PARSING;
+				this.dispatchEvent( { type: 'tile-parse-start', tile } );
 
 				return parseQueue.add( tile, parseTile => {
 
@@ -912,6 +921,9 @@ export class TilesRendererBase {
 						return Promise.resolve();
 
 					}
+
+					// Dispatch event right before actual parsing work starts (inside parseQueue)
+					this.dispatchEvent( { type: 'tile-parse-work-start', tile } );
 
 					if ( extension === 'json' && content.root ) {
 
