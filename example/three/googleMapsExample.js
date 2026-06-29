@@ -15,6 +15,8 @@ import {
 	BatchedTilesPlugin,
 	CesiumIonAuthPlugin,
 } from '3d-tiles-renderer/plugins';
+import { LoadRegionPlugin } from '3d-tiles-renderer/three/plugins';
+import { CameraCartographicRegion } from './src/plugins/CameraCartographicRegion.js';
 import {
 	Scene,
 	WebGLRenderer,
@@ -22,19 +24,20 @@ import {
 	MathUtils,
 	OrthographicCamera,
 } from 'three';
-import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
-import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
-import Stats from 'three/examples/jsm/libs/stats.module.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
+import Stats from 'three/addons/libs/stats.module.js';
 import { TopoLinesPlugin } from './src/plugins/topolines/TopoLinesPlugin.js';
 
 let controls, scene, renderer, tiles, transition;
 let statsContainer, stats;
+let cameraRegion;
 
 const params = {
 
 	orthographic: false,
 
-	optimizedLoadStrategy: false,
+	loadAncestors: true,
 	loadSiblings: true,
 
 	enableCacheDisplay: false,
@@ -62,7 +65,6 @@ function reinstantiateTiles() {
 	}
 
 	tiles = new TilesRenderer();
-	tiles.lruCache.minSize = 0;
 	tiles.registerPlugin( new CesiumIonAuthPlugin( { apiToken: import.meta.env.VITE_ION_KEY, assetId: '2275207', autoRefreshToken: true } ) );
 	tiles.registerPlugin( new TileCompressionPlugin() );
 	tiles.registerPlugin( new UpdateOnChangePlugin() );
@@ -73,8 +75,18 @@ function reinstantiateTiles() {
 		// We use unpkg here but in practice should be provided by the application.
 		dracoLoader: new DRACOLoader().setDecoderPath( 'https://unpkg.com/three@0.153.0/examples/jsm/libs/draco/gltf/' )
 	} ) );
-	tiles.optimizedLoadStrategy = params.optimizedLoadStrategy;
-	tiles.loadSiblings = params.loadSiblings;
+
+	// use the camera cartographic region plugin to prevent particularly low-lod
+	// tiles from loading beneath the camera, causing navigation issues.
+	cameraRegion = new CameraCartographicRegion( {
+		camera: transition.perspectiveCamera,
+		radius: 1500,
+		errorTarget: 5000,
+	} );
+
+	tiles.registerPlugin( new LoadRegionPlugin( {
+		regions: [ cameraRegion ],
+	} ) );
 
 	if ( params.useFadePlugin ) {
 
@@ -135,6 +147,9 @@ function init() {
 	// controls
 	controls = new GlobeControls( scene, transition.camera, renderer.domElement, null );
 	controls.enableDamping = true;
+	controls.enableFlight = true;
+	controls.flightSpeed = 0.5;
+	controls.maxAltitude = Math.PI / 2;
 
 	// initialize tiles
 	reinstantiateTiles();
@@ -166,28 +181,22 @@ function init() {
 	} );
 
 	const mapsOptions = gui.addFolder( 'Google Photorealistic Tiles' );
-	if ( new URLSearchParams( window.location.search ).has( 'showOptimizedSettings' ) ) {
-
-		params.optimizedLoadStrategy = true;
-		tiles.optimizedLoadStrategy = true;
-		mapsOptions.add( params, 'optimizedLoadStrategy' ).listen();
-		mapsOptions.add( params, 'loadSiblings' ).listen();
-
-	}
-
 	mapsOptions.add( params, 'useBatchedMesh' ).listen();
 	mapsOptions.add( params, 'useFadePlugin' ).listen();
+	mapsOptions.add( params, 'loadAncestors' ).listen();
+	mapsOptions.add( params, 'loadSiblings' ).listen();
+	mapsOptions.add( params, 'errorTarget', 5, 100, 1 ).onChange( () => {
+
+		tiles.getPluginByName( 'UPDATE_ON_CHANGE_PLUGIN' ).needsUpdate = true;
+
+	} );
+
 	mapsOptions.add( params, 'reload' );
 
 	const exampleOptions = gui.addFolder( 'Example Options' );
 	exampleOptions.add( params, 'displayTopoLines' ).listen();
 	exampleOptions.add( params, 'enableCacheDisplay' );
 	exampleOptions.add( params, 'enableRendererStats' );
-	exampleOptions.add( params, 'errorTarget', 5, 100, 1 ).onChange( () => {
-
-		tiles.getPluginByName( 'UPDATE_ON_CHANGE_PLUGIN' ).needsUpdate = true;
-
-	} );
 
 	// add stats
 	statsContainer = document.createElement( 'div' );
@@ -355,9 +364,14 @@ function animate() {
 	plugin.topoOpacity = params.displayTopoLines ? 0.5 : 0;
 	plugin.cartoOpacity = params.displayTopoLines ? 0.5 : 0;
 
+	// update camera region
+	cameraRegion.camera = camera;
+
 	// update tiles
 	camera.updateMatrixWorld();
 	tiles.errorTarget = params.errorTarget;
+	tiles.loadSiblings = params.loadSiblings;
+	tiles.loadAncestors = params.loadAncestors;
 	tiles.update();
 
 	renderer.render( scene, camera );

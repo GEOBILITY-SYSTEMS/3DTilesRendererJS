@@ -1,7 +1,8 @@
 /** @import { WebGLRenderer } from 'three' */
 /** @import { WMTSTileMatrix } from './WMTSImageSource.js' */
+/** @import { VectorTileStyle } from './utils/VectorShapeCanvasRenderer.js' */
 import { Color, BufferAttribute, Matrix4, Vector3, Box3, Triangle, CanvasTexture } from 'three';
-import { PriorityQueue, PriorityQueueItemRemovedError } from '3d-tiles-renderer/core';
+import { PriorityQueue, unifiedPriorityCallback, DEFAULT_DOWNLOAD_QUEUE } from '3d-tiles-renderer/core';
 import { CesiumIonAuth, GoogleCloudAuth } from '3d-tiles-renderer/core/plugins';
 import { XYZImageSource } from './sources/XYZImageSource.js';
 import { QuadKeyImageSource } from './sources/QuadKeyImageSource.js';
@@ -15,6 +16,7 @@ import { GeoJSONImageSource } from './sources/GeoJSONImageSource.js';
 import { WMSImageSource } from './sources/WMSImageSource.js';
 import { TiledRegionImageSource } from './sources/RegionImageSource.js';
 import { TiledTextureComposer } from './overlays/TiledTextureComposer.js';
+import { DeepZoomImageSource } from './sources/DeepZoomImageSource.js';
 
 const _matrix = /* @__PURE__ */ new Matrix4();
 const _vec = /* @__PURE__ */ new Vector3();
@@ -26,12 +28,37 @@ const SPLIT_TILE_DATA = Symbol( 'SPLIT_TILE_DATA' );
 const SPLIT_HASH = Symbol( 'SPLIT_HASH' );
 const ORIGINAL_REFINE = Symbol( 'ORIGINAL_REFINE' );
 
+const PROCESS_QUEUE = /* @__PURE__ */ new PriorityQueue();
+PROCESS_QUEUE.maxJobs = 10;
+PROCESS_QUEUE.priorityCallback = ( a, b ) => {
+
+	const tileA = a.tile;
+	const tileB = b.tile;
+
+	const rendererA = tileA.internal.renderer;
+	const rendererB = tileB.internal.renderer;
+
+	const visibleA = rendererA.visibleTiles.has( tileA );
+	const visibleB = rendererB.visibleTiles.has( tileB );
+	if ( visibleA !== visibleB ) {
+
+		// load visible tiles first
+		return visibleA ? 1 : - 1;
+
+	} else {
+
+		// the fallback to the download queue tile priority
+		return unifiedPriorityCallback( tileA, tileB );
+
+	}
+
+};
+
 /**
  * Plugin that composites one or more tiled image overlays onto 3D tile geometry by
  * generating per-tile textures from image sources (XYZ, TMS, WMTS, WMS, GeoJSON, etc.).
  * Image sources are added via `addOverlay()` and removed via `deleteOverlay()`.
  * @param {Object} [options]
- * @param {WebGLRenderer} options.renderer The renderer used for constructing and rendering to render targets.
  * @param {Array} [options.overlays=[]] Initial image overlay sources to add.
  * @param {number} [options.resolution=256] Resolution of each generated tile texture in pixels.
  * @param {boolean} [options.enableTileSplitting=true] Allow tiles to be split to match image tile boundaries.
@@ -85,6 +112,7 @@ export class ImageOverlayPlugin {
 		this.processQueue = null;
 		this._onUpdateAfter = null;
 		this._onTileDownloadStart = null;
+		this._onTileVisibilityChange = null;
 		this._virtualChildResetId = 0;
 		this._bytesUsed = new WeakMap();
 
@@ -100,33 +128,11 @@ export class ImageOverlayPlugin {
 	init( tiles ) {
 
 		const tileComposer = new TiledTextureComposer();
-		const processQueue = new PriorityQueue();
-		processQueue.maxJobs = 10;
-		processQueue.priorityCallback = ( a, b ) => {
-
-			const tileA = a.tile;
-			const tileB = b.tile;
-
-			const visibleA = tiles.visibleTiles.has( tileA );
-			const visibleB = tiles.visibleTiles.has( tileB );
-			if ( visibleA !== visibleB ) {
-
-				// load visible tiles first
-				return visibleA ? 1 : - 1;
-
-			} else {
-
-				// the fallback to the download queue tile priority
-				return tiles.downloadQueue.priorityCallback( tileA, tileB );
-
-			}
-
-		};
 
 		// save variables
 		this.tiles = tiles;
 		this.tileComposer = tileComposer;
-		this.processQueue = processQueue;
+		this.processQueue = PROCESS_QUEUE;
 
 		// init all existing tiles
 		tiles.forEachLoadedModel( ( scene, tile ) => {
@@ -160,6 +166,7 @@ export class ImageOverlayPlugin {
 			// trigger redraws for visible tiles if overlays updated
 			if ( overlayChanged ) {
 
+				const { processQueue } = this;
 				const maxJobs = processQueue.maxJobs;
 				let count = 0;
 				processQueue.items.forEach( info => {
@@ -201,7 +208,7 @@ export class ImageOverlayPlugin {
 				this.resetVirtualChildren( ! this.enableTileSplitting );
 				tiles.recalculateBytesUsed();
 
-				tiles.dispatchEvent( { type: 'needs-rerender' } );
+				tiles.dispatchEvent( { type: 'needs-render' } );
 
 			}
 
@@ -220,8 +227,24 @@ export class ImageOverlayPlugin {
 
 		};
 
+		this._onTileVisibilityChange = ( { tile, visible } ) => {
+
+			this.overlayInfo.forEach( ( { tileInfo }, overlay ) => {
+
+				if ( tileInfo.has( tile ) ) {
+
+					const { range } = tileInfo.get( tile );
+					overlay.setRegionVisible( range, visible, tile );
+
+				}
+
+			} );
+
+		};
+
 		tiles.addEventListener( 'update-after', this._onUpdateAfter );
 		tiles.addEventListener( 'tile-download-start', this._onTileDownloadStart );
+		tiles.addEventListener( 'tile-visibility-change', this._onTileVisibilityChange );
 
 		this.overlays.forEach( overlay => {
 
@@ -290,7 +313,7 @@ export class ImageOverlayPlugin {
 
 				if ( range !== null ) {
 
-					overlay.releaseTexture( range, tile );
+					overlay.releaseTexture( range );
 
 				}
 
@@ -401,6 +424,8 @@ export class ImageOverlayPlugin {
 		} );
 
 		tiles.removeEventListener( 'update-after', this._onUpdateAfter );
+		tiles.removeEventListener( 'tile-download-start', this._onTileDownloadStart );
+		tiles.removeEventListener( 'tile-visibility-change', this._onTileVisibilityChange );
 
 		this.resetVirtualChildren( true );
 
@@ -420,7 +445,7 @@ export class ImageOverlayPlugin {
 
 	}
 
-	parseToMesh( buffer, tile, extension, uri ) {
+	parseToMesh( buffer, tile, extension, url ) {
 
 		if ( extension === 'image_overlay_tile_split' ) {
 
@@ -511,7 +536,7 @@ export class ImageOverlayPlugin {
 			// if the tile has a render target associated with the overlay and the last level of detail
 			// is not being displayed, yet, then we need to split
 			const info = tileInfo.get( tile );
-			if ( info && info.target && overlay.shouldSplit( info.range, tile ) ) {
+			if ( info && info.target && overlay.shouldSplit( info.range ) ) {
 
 				// get the vector representing the projection direction
 				if ( overlay.frame ) {
@@ -763,10 +788,10 @@ export class ImageOverlayPlugin {
 
 	}
 
-	fetchData( uri, options ) {
+	fetchData( url, options ) {
 
 		// if this is our custom url indicating a tile split then return fake response
-		if ( /image_overlay_tile_split/.test( uri ) ) {
+		if ( /image_overlay_tile_split/.test( url ) ) {
 
 			return new ArrayBuffer();
 
@@ -833,7 +858,7 @@ export class ImageOverlayPlugin {
 	 */
 	deleteOverlay( overlay ) {
 
-		const { overlays, overlayInfo, processQueue, processedTiles } = this;
+		const { overlays, overlayInfo, processQueue, processedTiles, tiles } = this;
 		const index = overlays.indexOf( overlay );
 		if ( index !== - 1 ) {
 
@@ -857,7 +882,13 @@ export class ImageOverlayPlugin {
 				// release the ranges
 				if ( range !== null ) {
 
-					overlay.releaseTexture( range, tile );
+					if ( tiles.visibleTiles.has( tile ) ) {
+
+						overlay.setRegionVisible( range, false );
+
+					}
+
+					overlay.releaseTexture( range );
 
 				}
 
@@ -870,10 +901,11 @@ export class ImageOverlayPlugin {
 			overlayInfo.delete( overlay );
 			controller.abort();
 
-			// Remove any items that reference the overlay being disposed
+			// Remove any items that reference the overlay being disposed - we check if the tiles
+			// is in this "processedTiles" map since the queue can be shared among plugin instances.
 			processQueue.removeByFilter( item => {
 
-				return item.overlay === overlay;
+				return item.overlay === overlay && processedTiles.has( item.tile );
 
 			} );
 
@@ -896,27 +928,19 @@ export class ImageOverlayPlugin {
 	// initialize the overlay to use the right fetch options, load all data for existing tiles
 	_initOverlay( overlay ) {
 
-		const { tiles } = this;
+		const { processedTiles } = this;
 
 		overlay.init().then( () => {
 
 			// Set resolution on the overlay
 			overlay.setResolution( this.resolution );
 
-			const overlayFetch = overlay.fetch.bind( overlay );
-			overlay.fetch = ( ...args ) => tiles
-				.downloadQueue
-				.add( { priority: - performance.now() }, () => {
-
-					return overlayFetch( ...args );
-
-				} );
-
 		} );
 
 		const promises = [];
-		const initTile = async ( scene, tile ) => {
+		processedTiles.forEach( async tile => {
 
+			const scene = tile.engineData.scene;
 			this._initTileOverlayInfo( tile, overlay );
 
 			const promise = this._initTileSceneOverlayInfo( scene, tile, overlay );
@@ -925,18 +949,6 @@ export class ImageOverlayPlugin {
 			// mark tiles as needing an update after initialized so we get a trickle in of tiles
 			await promise;
 			this._updateLayers( tile );
-
-		};
-
-		tiles.forEachLoadedModel( ( scene, tile ) => {
-
-			initTile( scene, tile );
-
-		} );
-
-		this.pendingTiles.forEach( ( scene, tile ) => {
-
-			initTile( scene, tile );
 
 		} );
 
@@ -988,6 +1000,7 @@ export class ImageOverlayPlugin {
 			range: null,
 			target: null,
 			meshInfo: new Map(),
+			failed: false,
 		};
 
 		overlayInfo
@@ -1012,7 +1025,7 @@ export class ImageOverlayPlugin {
 				range = overlay.projection.toNormalizedRange( range );
 
 				info.range = range;
-				overlay.lockTexture( range, tile );
+				overlay.lockTextureSafe( range );
 
 			}
 
@@ -1029,7 +1042,7 @@ export class ImageOverlayPlugin {
 
 		}
 
-		const { tiles, overlayInfo, tileControllers, processQueue } = this;
+		const { tiles, overlayInfo, tileControllers } = this;
 		const { ellipsoid } = tiles;
 		const { controller, tileInfo } = overlayInfo.get( overlay );
 		const tileController = tileControllers.get( tile );
@@ -1104,57 +1117,139 @@ export class ImageOverlayPlugin {
 		if ( info.range === null ) {
 
 			info.range = range;
-			overlay.lockTexture( range, tile );
+			overlay.lockTextureSafe( range );
+
+		}
+
+		if ( tiles.visibleTiles.has( tile ) ) {
+
+			overlay.setRegionVisible( info.range, true );
 
 		}
 
 		// if the image projection is outside the 0, 1 uvw range or there are no textures to draw in
 		// the tiled image set the don't allocate a texture for it.
-		let target = null;
-		if ( heightInRange && overlay.hasContent( range, tile ) ) {
+		if ( heightInRange && overlay.hasContent( range ) ) {
 
-			target = await processQueue
-				.add( { tile, overlay }, async () => {
-
-					// check if the overlay has been disposed since starting this function
-					if ( controller.signal.aborted || tileController.signal.aborted ) {
-
-						return null;
-
-					}
-
-					// Get the texture from the overlay
-					const regionTarget = await overlay.getTexture( range, tile );
-
-					// check if the overlay has been disposed since starting this function
-					if ( controller.signal.aborted || tileController.signal.aborted ) {
-
-						return null;
-
-					}
-
-					return regionTarget;
-
-				} )
-				.catch( err => {
-
-					if ( ! ( err instanceof PriorityQueueItemRemovedError ) ) {
-
-						throw err;
-
-					}
-
-				} );
+			await this._fetchTileOverlayTexture( tile, overlay, info );
 
 		}
-
-		info.target = target;
 
 		meshes.forEach( ( mesh, i ) => {
 
 			const array = new Float32Array( uvs[ i ] );
 			const attribute = new BufferAttribute( array, 3 );
 			info.meshInfo.set( mesh, { attribute } );
+
+		} );
+
+	}
+
+	// Queues an overlay texture fetch for the given tile, writing the result into info.target.
+	// Never throws — failures mark info.failed and dispatch a load-error event instead.
+	async _fetchTileOverlayTexture( tile, overlay, info ) {
+
+		const { tiles, overlayInfo, tileControllers, processQueue } = this;
+		const { controller } = overlayInfo.get( overlay );
+		const tileController = tileControllers.get( tile );
+		const { range } = info;
+
+		info.target = await processQueue
+			.add( { tile, overlay }, async () => {
+
+				// check if the overlay has been disposed since starting this function
+				if ( controller.signal.aborted || tileController.signal.aborted ) {
+
+					return null;
+
+				}
+
+				// Get the texture from the overlay
+				const regionTarget = await overlay.getTexture( range );
+
+				// check if the overlay has been disposed since starting this function
+				if ( controller.signal.aborted || tileController.signal.aborted ) {
+
+					return null;
+
+				}
+
+				return regionTarget;
+
+			} )
+			.catch( err => {
+
+				if ( err.name === 'AbortError' ) {
+
+					return null;
+
+				}
+
+				info.failed = true;
+				tiles.dispatchEvent( { type: 'load-error', tile, overlay, error: err, url: null } );
+				return null;
+
+			} );
+
+	}
+
+	/**
+	 * Retries any overlay texture fetches that previously failed. Successfully loaded textures
+	 * are applied to their tiles without requiring a geometry reload. Pairs with the `load-error`
+	 * event, which fires on the `TilesRenderer` when an overlay texture fetch fails.
+	 */
+	resetFailedOverlays() {
+
+		const { processedTiles, overlayInfo, overlays } = this;
+		const failed = [];
+
+		// Release all failed entries synchronously so their DataCache disposal
+		// microtasks are queued before we re-lock below.
+		processedTiles.forEach( tile => {
+
+			overlays.forEach( overlay => {
+
+				const { tileInfo } = overlayInfo.get( overlay );
+				const info = tileInfo.get( tile );
+				if ( ! info.failed ) {
+
+					return;
+
+				}
+
+				info.failed = false;
+				overlay.releaseTexture( info.range );
+				failed.push( { tile, overlay, info } );
+
+			} );
+
+		} );
+
+		// Defer to the next frame so all disposal microtasks — including nested sub-cache
+		// cleanup — have fully drained before re-locking.
+		requestAnimationFrame( () => {
+
+			failed.forEach( ( { tile, overlay, info } ) => {
+
+				overlay.lockTextureSafe( info.range );
+
+				this._fetchTileOverlayTexture( tile, overlay, info )
+					.then( () => {
+
+						this._updateLayers( tile );
+
+					} )
+					.catch( err => {
+
+						if ( err.name !== 'AbortError' ) {
+
+							throw err;
+
+						}
+
+					} );
+
+			} );
 
 		} );
 
@@ -1276,7 +1371,7 @@ export class ImageOverlayPlugin {
  * @param {boolean} [options.alphaInvert=false] If true, inverts the alpha channel before
  * applying the mask or blend.
  */
-class ImageOverlay {
+export class ImageOverlay {
 
 	get isPlanarProjection() {
 
@@ -1300,10 +1395,12 @@ class ImageOverlay {
 		this.frame = frame !== null ? frame.clone() : null;
 		this.alphaMask = alphaMask;
 		this.alphaInvert = alphaInvert;
+		this.downloadQueue = DEFAULT_DOWNLOAD_QUEUE;
 
 		this._whenReady = null;
 		this.isReady = false;
 		this.isInitialized = false;
+		this._visibleRegionCounts = new Map();
 
 	}
 
@@ -1341,7 +1438,15 @@ class ImageOverlay {
 
 		}
 
-		return fetch( url, options );
+		const item = { priority: - performance.now() };
+		const promise = this.downloadQueue.add( item, () => fetch( url, options ) );
+		if ( options.signal ) {
+
+			options.signal.addEventListener( 'abort', () => this.downloadQueue.remove( item ), { once: true } );
+
+		}
+
+		return promise;
 
 	}
 
@@ -1349,25 +1454,31 @@ class ImageOverlay {
 
 	}
 
-	hasContent( range, tile ) {
+	hasContent( range, level = null ) {
 
 		return false;
 
 	}
 
-	async getTexture( range, tile ) {
+	async getTexture( range, level = null ) {
 
 		return null;
 
 	}
 
-	async lockTexture( range, tile ) {
+	async lockTexture( range, level = null ) {
 
 		return null;
 
 	}
 
-	releaseTexture( range, tile ) {
+	releaseTexture( range, level = null ) {
+
+	}
+
+	shouldSplit( range, level = null ) {
+
+		return false;
 
 	}
 
@@ -1375,9 +1486,29 @@ class ImageOverlay {
 
 	}
 
-	shouldSplit( range, tile ) {
+	setRegionVisible( range, visible ) {
 
-		return false;
+		const { _visibleRegionCounts } = this;
+		const key = range.join( '_' );
+		let entry = _visibleRegionCounts.get( key );
+		if ( ! entry ) {
+
+			entry = { range: [ ...range ], count: 0 };
+			_visibleRegionCounts.set( key, entry );
+
+		}
+
+		entry.count += visible ? 1 : - 1;
+
+		if ( entry.count < 0 ) {
+
+			throw new Error();
+
+		} else if ( entry.count === 0 ) {
+
+			_visibleRegionCounts.delete( key );
+
+		}
 
 	}
 
@@ -1389,7 +1520,7 @@ class ImageOverlay {
  * multiple source tiles into a single texture per 3D tile region.
  * @extends ImageOverlay
  */
-class TiledImageOverlay extends ImageOverlay {
+export class TiledImageOverlay extends ImageOverlay {
 
 	get tiling() {
 
@@ -1450,77 +1581,75 @@ class TiledImageOverlay extends ImageOverlay {
 	}
 
 	// Texture acquisition API implementations
-	calculateLevel( range, tile ) {
+	calculateLevel( range ) {
 
-		if ( this.isPlanarProjection ) {
+		const [ minX, minY, maxX, maxY ] = range;
+		const w = maxX - minX;
+		const h = maxY - minY;
 
-			const [ minX, minY, maxX, maxY ] = range;
-			const w = maxX - minX;
-			const h = maxY - minY;
+		let level = 0;
+		const resolution = this.regionImageSource.resolution;
+		const maxLevel = this.tiling.maxLevel;
+		for ( ; level < maxLevel; level ++ ) {
 
-			let level = 0;
-			const resolution = this.regionImageSource.resolution;
-			const maxLevel = this.tiling.maxLevel;
-			for ( ; level < maxLevel; level ++ ) {
+			// the number of pixels per image on each axis
+			const wProj = resolution / w;
+			const hProj = resolution / h;
 
-				// the number of pixels per image on each axis
-				const wProj = resolution / w;
-				const hProj = resolution / h;
+			const levelData = this.tiling.getLevel( level );
+			if ( levelData === null || levelData === undefined ) {
 
-				const { pixelWidth, pixelHeight } = this.tiling.getLevel( level );
-				if ( pixelWidth >= wProj || pixelHeight >= hProj ) {
-
-					break;
-
-				}
+				continue;
 
 			}
 
-			// TODO: should this be one layer higher LoD?
-			return level;
+			const { pixelWidth, pixelHeight } = levelData;
+			if ( pixelWidth >= wProj || pixelHeight >= hProj ) {
 
-		} else {
+				break;
 
-			return tile.internal.depthFromRenderedParent - 1;
+			}
 
 		}
 
-	}
-
-	hasContent( range, tile ) {
-
-		return this.regionImageSource.hasContent( ...range, this.calculateLevel( range, tile ) );
+		return level;
 
 	}
 
-	getTexture( range, tile ) {
+	hasContent( range, level = this.calculateLevel( range ) ) {
 
-		return this.regionImageSource.get( ...range, this.calculateLevel( range, tile ) );
-
-	}
-
-	lockTexture( range, tile ) {
-
-		return this.regionImageSource.lock( ...range, this.calculateLevel( range, tile ) );
+		return this.regionImageSource.hasContent( ...range, level );
 
 	}
 
-	releaseTexture( range, tile ) {
+	getTexture( range, level = this.calculateLevel( range ) ) {
 
-		this.regionImageSource.release( ...range, this.calculateLevel( range, tile ) );
+		return this.regionImageSource.get( ...range, level );
+
+	}
+
+	lockTexture( range, level = this.calculateLevel( range ) ) {
+
+		return this.regionImageSource.lock( ...range, level );
+
+	}
+
+	releaseTexture( range, level = this.calculateLevel( range ) ) {
+
+		this.regionImageSource.release( ...range, level );
+
+	}
+
+	shouldSplit( range, level = this.calculateLevel( range ) ) {
+
+		// if we haven't reached the max level yet then continue splitting
+		return this.tiling.maxLevel > level;
 
 	}
 
 	setResolution( resolution ) {
 
 		this.regionImageSource.resolution = resolution;
-
-	}
-
-	shouldSplit( range, tile ) {
-
-		// if we haven't reached the max level yet then continue splitting
-		return this.tiling.maxLevel > this.calculateLevel( range, tile );
 
 	}
 
@@ -1554,6 +1683,32 @@ export class XYZTilesOverlay extends TiledImageOverlay {
 }
 
 /**
+ * Plugin that renders a Deep Zoom Image (DZI) as a tiled overlay. Only a single embedded "Image" is supported.
+ * See the {@link https://learn.microsoft.com/en-us/previous-versions/windows/silverlight/dotnet-windows-silverlight/cc645077(v=vs.95) Deep Zoom specification}
+ * and {@link https://openseadragon.github.io OpenSeadragon}.
+ * @extends TiledImageOverlay
+ * @param {Object} [options]
+ * @param {string} [options.url] URL to the `.dzi` descriptor file.
+ */
+export class DeepZoomOverlay extends TiledImageOverlay {
+
+	constructor( options ) {
+
+		super( options );
+		this.imageSource = new DeepZoomImageSource( options );
+
+	}
+
+}
+
+/**
+ * @callback GeoJSONGetStyleCallback
+ * @param {Object} feature The GeoJSON feature object being rendered.
+ * @param {Object} properties The feature's properties object.
+ * @returns {VectorTileStyle|null} Style to apply, or `null` to use defaults.
+ */
+
+/**
  * Overlay that rasterizes a GeoJSON dataset onto 3D tile geometry. Features are drawn using the
  * Canvas 2D API at the tile's native resolution. Per-feature style overrides can be provided via
  * the `strokeStyle`, `fillStyle`, `strokeWidth`, and `pointRadius` properties on each GeoJSON
@@ -1565,6 +1720,7 @@ export class XYZTilesOverlay extends TiledImageOverlay {
  * @param {string} [options.url=null] URL to a GeoJSON file to fetch on initialization (used when
  * `geojson` is not supplied directly).
  * @param {number} [options.resolution=256] Canvas resolution (pixels) used when compositing tiles.
+ * @param {GeoJSONGetStyleCallback} [options.getStyle] Per-feature style callback. When provided, overrides `strokeStyle`, `fillStyle`, `strokeWidth`, and `pointRadius`.
  * @param {number} [options.pointRadius=6] Radius in pixels used to render Point features.
  * @param {string} [options.strokeStyle='white'] Canvas stroke style for feature outlines.
  * @param {number} [options.strokeWidth=2] Stroke line width in pixels.
@@ -1655,6 +1811,10 @@ export class GeoJSONOverlay extends ImageOverlay {
 		super( options );
 		this.imageSource = new GeoJSONImageSource( options );
 
+		this._redrawQueue = new PriorityQueue();
+		this._redrawQueue.maxJobs = 4;
+		this._redrawQueue.priorityCallback = () => 0;
+
 	}
 
 	_init() {
@@ -1681,6 +1841,24 @@ export class GeoJSONOverlay extends ImageOverlay {
 
 	}
 
+	lockTextureSafe( range ) {
+
+		// locks a texture without risk of throwing due to abort
+		const result = this.lockTexture( range );
+		if ( result instanceof Promise ) {
+
+			result.catch( err => {
+
+				if ( err.name !== 'AbortError' ) throw err;
+
+			} );
+
+		}
+
+		return result;
+
+	}
+
 	releaseTexture( range ) {
 
 		this.imageSource.release( ...range );
@@ -1693,16 +1871,59 @@ export class GeoJSONOverlay extends ImageOverlay {
 
 	}
 
-	shouldSplit( range, tile ) {
+	shouldSplit( range ) {
 
 		// geojson can always split
 		return true;
 
 	}
 
+	setRegionVisible( range, visible ) {
+
+		super.setRegionVisible( range, visible );
+
+		if ( visible ) {
+
+			const { _redrawQueue } = this;
+			const key = range.join( '_' );
+			if ( _redrawQueue.has( key ) ) {
+
+				_redrawQueue.flush( key );
+
+			}
+
+		}
+
+	}
+
 	redraw() {
 
-		this.imageSource.redraw();
+		const {
+			imageSource,
+			_redrawQueue,
+			_visibleRegionCounts,
+		} = this;
+
+		for ( const { range } of _visibleRegionCounts.values() ) {
+
+			imageSource.redraw( ...range );
+
+		}
+
+		imageSource.forEachItem( ( _, args ) => {
+
+			const key = args.join( '_' );
+			if ( ! _visibleRegionCounts.has( key ) && ! _redrawQueue.has( key ) ) {
+
+				_redrawQueue.add( key, () => {
+
+					imageSource.redraw( ...args );
+
+				} );
+
+			}
+
+		} );
 
 	}
 
@@ -1902,10 +2123,31 @@ export class CesiumIonOverlay extends TiledImageOverlay {
 
 	}
 
-	fetch( ...args ) {
+	fetch( url, options = {} ) {
 
 		// bypass auth fetch if asset is external type to prevent CORS error due to wrong bearer token
-		return this.externalType ? super.fetch( ...args ) : this.auth.fetch( ...args );
+		if ( this.externalType ) {
+
+			return super.fetch( url, options );
+
+		}
+
+		if ( this.preprocessURL ) {
+
+			url = this.preprocessURL( url );
+
+		}
+
+		// TODO: we should provide a better way to sort these
+		const item = { priority: - performance.now() };
+		const promise = this.downloadQueue.add( item, () => this.auth.fetch( url, options ) );
+		if ( options.signal ) {
+
+			options.signal.addEventListener( 'abort', () => this.downloadQueue.remove( item ), { once: true } );
+
+		}
+
+		return promise;
 
 	}
 
@@ -1971,9 +2213,23 @@ export class GoogleMapsOverlay extends TiledImageOverlay {
 
 	}
 
-	fetch( ...args ) {
+	fetch( url, options = {} ) {
 
-		return this.auth.fetch( ...args );
+		if ( this.preprocessURL ) {
+
+			url = this.preprocessURL( url );
+
+		}
+
+		const item = { priority: - performance.now() };
+		const promise = this.downloadQueue.add( item, () => this.auth.fetch( url, options ) );
+		if ( options.signal ) {
+
+			options.signal.addEventListener( 'abort', () => this.downloadQueue.remove( item ), { once: true } );
+
+		}
+
+		return promise;
 
 	}
 

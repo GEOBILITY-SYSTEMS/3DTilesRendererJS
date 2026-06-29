@@ -10,20 +10,17 @@ import {
 	Matrix4,
 	Vector3,
 	Vector2,
-	Euler,
 	LoadingManager,
 	EventDispatcher,
 	Group,
 } from 'three';
-import { raycastTraverse, raycastTraverseFirstHit } from './raycastTraverse.js';
+import { raycastTraverse } from './raycastTraverse.js';
 import { TileBoundingVolume } from '../math/TileBoundingVolume.js';
 import { ExtendedFrustum } from '../math/ExtendedFrustum.js';
 import { estimateBytesUsed } from '../utils/MemoryUtils.js';
 import { WGS84_ELLIPSOID } from '../math/GeoConstants.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-const _mat = /* @__PURE__ */ new Matrix4();
-const _euler = /* @__PURE__ */ new Euler();
 
 // In three.js r165 and higher raycast traversal can be ended early
 const INITIAL_FRUSTUM_CULLED = Symbol( 'INITIAL_FRUSTUM_CULLED' );
@@ -57,6 +54,7 @@ export class TilesRenderer extends TilesRendererBase {
 	 * tiles renderer performs its own frustum culling. If `displayActiveTiles` is `true` or
 	 * multiple cameras are being used, consider setting this to `false`.
 	 * @type {boolean}
+	 * @default true
 	 */
 	get autoDisableRendererCulling() {
 
@@ -79,22 +77,19 @@ export class TilesRenderer extends TilesRendererBase {
 
 	}
 
-	get optimizeRaycast() {
-
-		return this._optimizeRaycast;
-
-	}
-
-	set optimizeRaycast( v ) {
-
-		console.warn( 'TilesRenderer: The "optimizeRaycast" option has been deprecated.' );
-		this._optimizeRaycast = v;
-
-	}
-
 	constructor( ...args ) {
 
 		super( ...args );
+
+		/**
+		 * Whether to use the bounding-volume hierarchy to accelerate raycasting. When disabled,
+		 * all active tile geometry is tested directly. Useful for tilesets with inaccurate
+		 * bounding volumes (e.g. Google Photorealistic Tiles) where traversal may miss
+		 * geometry between bounding volumes.
+		 * @type {boolean}
+		 * @default true
+		 */
+		this.accelerateRaycast = true;
 
 		/**
 		 * The container `Group` for the 3D tiles. Add this to the three.js scene. The group
@@ -105,10 +100,10 @@ export class TilesRenderer extends TilesRendererBase {
 		this.group = new TilesGroup( this );
 
 		/**
-		 * The ellipsoid definition used for the tileset. Defaults to WGS84 and may be
-		 * overridden by the `3DTILES_ellipsoid` extension. Specified in the local frame of
-		 * `TilesRenderer.group`.
+		 * The ellipsoid definition used for the tileset. May be overridden by the
+		 * `3DTILES_ellipsoid` extension. Specified in the local frame of `TilesRenderer.group`.
 		 * @type {Ellipsoid}
+		 * @default WGS84_ELLIPSOID
 		 */
 		this.ellipsoid = WGS84_ELLIPSOID.clone();
 
@@ -119,7 +114,6 @@ export class TilesRenderer extends TilesRendererBase {
 		this.cameras = [];
 		this.cameraMap = new Map();
 		this.cameraInfo = [];
-		this._optimizeRaycast = true;
 		this._upRotationMatrix = new Matrix4();
 		this._bytesUsed = new WeakMap();
 
@@ -129,6 +123,7 @@ export class TilesRenderer extends TilesRendererBase {
 		/**
 		 * The `LoadingManager` used when loading tile geometry.
 		 * @type {LoadingManager}
+		 * @default new LoadingManager()
 		 */
 		this.manager = new LoadingManager();
 
@@ -139,25 +134,11 @@ export class TilesRenderer extends TilesRendererBase {
 
 	addEventListener( type, listener ) {
 
-		if ( type === 'load-tile-set' ) {
-
-			console.warn( 'TilesRenderer: "load-tile-set" event has been deprecated. Use "load-tileset" instead.' );
-			type = 'load-tileset';
-
-		}
-
 		EventDispatcher.prototype.addEventListener.call( this, type, listener );
 
 	}
 
 	hasEventListener( type, listener ) {
-
-		if ( type === 'load-tile-set' ) {
-
-			console.warn( 'TilesRenderer: "load-tile-set" event has been deprecated. Use "load-tileset" instead.' );
-			type = 'load-tileset';
-
-		}
 
 		return EventDispatcher.prototype.hasEventListener.call( this, type, listener );
 
@@ -165,33 +146,11 @@ export class TilesRenderer extends TilesRendererBase {
 
 	removeEventListener( type, listener ) {
 
-		if ( type === 'load-tile-set' ) {
-
-			console.warn( 'TilesRenderer: "load-tile-set" event has been deprecated. Use "load-tileset" instead.' );
-			type = 'load-tileset';
-
-		}
-
 		EventDispatcher.prototype.removeEventListener.call( this, type, listener );
 
 	}
 
 	dispatchEvent( e ) {
-
-		if ( 'tileset' in e ) {
-
-			Object.defineProperty( e, 'tileSet', {
-				get() {
-
-					console.warn( 'TilesRenderer: "event.tileSet" has been deprecated. Use "event.tileset" instead.' );
-					return e.tileset;
-
-				},
-				enumerable: false,
-				configurable: true,
-			} );
-
-		}
 
 		EventDispatcher.prototype.dispatchEvent.call( this, e );
 
@@ -314,18 +273,34 @@ export class TilesRenderer extends TilesRendererBase {
 
 		}
 
-		if ( raycaster.firstHitOnly ) {
+		if ( this.accelerateRaycast ) {
 
-			const hit = raycastTraverseFirstHit( this, this.root, raycaster );
-			if ( hit ) {
-
-				intersects.push( hit );
-
-			}
+			raycastTraverse( this, this.root, raycaster, intersects );
 
 		} else {
 
-			raycastTraverse( this, this.root, raycaster, intersects );
+			const hits = raycaster.firstHitOnly ? [] : intersects;
+			for ( const tile of this.activeTiles ) {
+
+				const { scene } = tile.engineData;
+				if ( ! this.invokeOnePlugin( plugin => {
+
+					return plugin.raycastTile && plugin.raycastTile( tile, scene, raycaster, hits );
+
+				} ) ) {
+
+					raycaster.intersectObject( scene, true, hits );
+
+				}
+
+			}
+
+			if ( raycaster.firstHitOnly && hits.length > 0 ) {
+
+				hits.sort( ( a, b ) => a.distance - b.distance );
+				intersects.push( hits[ 0 ] );
+
+			}
 
 		}
 
@@ -394,6 +369,21 @@ export class TilesRenderer extends TilesRendererBase {
 		}
 
 		return true;
+
+	}
+
+	/**
+	 * Returns the render resolution previously set for a registered camera.
+	 * @param {Camera} camera - A previously registered camera.
+	 * @param {Vector2} target - Vector2 to write the result into.
+	 * @returns {Vector2|null} The target with width/height filled in, or null if the camera is not registered.
+	 */
+	getResolution( camera, target ) {
+
+		const vec = this.cameraMap.get( camera );
+		if ( ! vec ) return null;
+
+		return target.copy( vec );
 
 	}
 
@@ -642,10 +632,10 @@ export class TilesRenderer extends TilesRendererBase {
 
 	}
 
-	async parseTile( buffer, tile, extension, uri, abortSignal ) {
+	async parseTile( buffer, tile, extension, url, abortSignal ) {
 
 		const engineData = tile.engineData;
-		const workingPath = LoaderUtils.getWorkingPath( uri );
+		const workingPath = LoaderUtils.getWorkingPath( url );
 		const fetchOptions = this.fetchOptions;
 
 		const manager = this.manager;
@@ -756,7 +746,7 @@ export class TilesRenderer extends TilesRendererBase {
 
 			default: {
 
-				promise = this.invokeOnePlugin( plugin => plugin.parseToMesh && plugin.parseToMesh( buffer, tile, extension, uri, abortSignal ) );
+				promise = this.invokeOnePlugin( plugin => plugin.parseToMesh && plugin.parseToMesh( buffer, tile, extension, url, abortSignal ) );
 				break;
 
 			}
@@ -945,6 +935,36 @@ export class TilesRenderer extends TilesRendererBase {
 
 	}
 
+	setTileActive( tile, active ) {
+
+		const scene = tile.engineData.scene;
+		const group = this.group;
+
+		if ( scene ) {
+
+			// update matrices for the tile scene
+			scene.traverse( c => {
+
+				c.updateMatrix();
+				c.matrixWorld.copy( c.matrix );
+				if ( c.parent ) {
+
+					c.matrixWorld.premultiply( c.parent.matrixWorld );
+
+				} else {
+
+					c.matrixWorld.premultiply( group.matrixWorld );
+
+				}
+
+			} );
+
+		}
+
+		super.setTileActive( tile, active );
+
+	}
+
 	setTileVisible( tile, visible ) {
 
 		const scene = tile.engineData.scene;
@@ -955,7 +975,6 @@ export class TilesRenderer extends TilesRendererBase {
 			if ( scene ) {
 
 				group.add( scene );
-				scene.updateMatrixWorld( true );
 
 			}
 
@@ -1052,29 +1071,6 @@ export class TilesRenderer extends TilesRendererBase {
 			target.distanceFromCamera = minCameraDistance;
 
 		}
-
-	}
-
-	// adjust the rotation of the group such that Y is altitude, X is North, and Z is East
-	setLatLonToYUp( lat, lon ) {
-
-		console.warn( 'TilesRenderer: setLatLonToYUp is deprecated. Use the ReorientationPlugin, instead.' );
-
-		const { ellipsoid, group } = this;
-
-		_euler.set( Math.PI / 2, Math.PI / 2, 0 );
-		_mat.makeRotationFromEuler( _euler );
-
-		ellipsoid.getEastNorthUpFrame( lat, lon, 0, group.matrix )
-			.multiply( _mat )
-			.invert()
-			.decompose(
-				group.position,
-				group.quaternion,
-				group.scale,
-			);
-
-		group.updateMatrixWorld( true );
 
 	}
 
