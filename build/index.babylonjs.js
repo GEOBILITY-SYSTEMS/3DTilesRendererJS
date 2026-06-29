@@ -1,269 +1,189 @@
-import { B as E, T as L } from "./B3DMLoaderBase-BsPRd_IY.js";
-import { L as O, g as j, r as S } from "./LoaderBase-ATuDWTDB.js";
-import { TransformNode as W } from "@babylonjs/core/Meshes/transformNode";
-import { Matrix as u, Quaternion as A, Vector3 as i } from "@babylonjs/core/Maths/math.vector";
-import { Frustum as N } from "@babylonjs/core/Maths/math.frustum";
-import { Observable as Q } from "@babylonjs/core/Misc/observable";
-import { Plane as U } from "@babylonjs/core/Maths/math.plane";
-import { LoadAssetContainerAsync as X } from "@babylonjs/core/Loading/sceneLoader";
+import { c as e, d as t, f as n, i as r, m as i } from "./renderer-DeQJfJ4K.js";
+import { TransformNode as a } from "@babylonjs/core/Meshes/transformNode";
+import { Matrix as o, Quaternion as s, Vector3 as c } from "@babylonjs/core/Maths/math.vector";
+import { Frustum as l } from "@babylonjs/core/Maths/math.frustum";
+import { Observable as u } from "@babylonjs/core/Misc/observable";
+import { Plane as d } from "@babylonjs/core/Maths/math.plane";
+import { LoadAssetContainerAsync as f } from "@babylonjs/core/Loading/sceneLoader";
 import "@babylonjs/loaders/glTF/2.0";
-import { BoundingSphere as Y } from "@babylonjs/core/Culling/boundingSphere";
-import { BoundingBox as G } from "@babylonjs/core/Culling/boundingBox";
-const P = /* @__PURE__ */ u.Identity();
-class V extends O {
-  /**
-   * @param {Scene} scene - The Babylon.js scene to load assets into.
-   */
-  constructor(e) {
-    super(), this.scene = e, this.adjustmentTransform = u.Identity();
-  }
-  /**
-   * @param {ArrayBuffer} buffer - The raw GLTF or GLB file data.
-   * @param {string} uri - URI used for resolving relative resources.
-   * @param {string} extension - File extension, either `'gltf'` or `'glb'`.
-   * @returns {Promise<{scene: TransformNode, container: AssetContainer, metadata: Object|null}>}
-   */
-  async parse(e, t, n) {
-    const { scene: s, workingPath: r, adjustmentTransform: o } = this;
-    let a = r;
-    a.length && !/[\\/]$/.test(a) && (a += "/");
-    const c = n === "gltf" ? ".gltf" : ".glb";
-    let f = null;
-    const h = await X(
-      new File([e], t),
-      s,
-      {
-        pluginExtension: c,
-        rootUrl: a,
-        pluginOptions: {
-          gltf: {
-            onParsed: (w) => {
-              f = w.json;
-            }
-          }
-        }
-      }
-    );
-    h.addAllToScene();
-    const d = h.rootNodes[0];
-    d.rotationQuaternion = A.Identity();
-    const m = d.computeWorldMatrix(!0);
-    return o.multiplyToRef(m, P), P.decompose(d.scaling, d.rotationQuaternion, d.position), {
-      scene: d,
-      container: h,
-      metadata: f
-    };
-  }
-}
-class H extends E {
-  /**
-   * @param {Scene} scene - The Babylon.js scene to load assets into.
-   */
-  constructor(e) {
-    super(), this.scene = e, this.adjustmentTransform = u.Identity();
-  }
-  /**
-   * @param {ArrayBuffer} buffer - The raw B3DM file data.
-   * @param {string} uri - URI used for resolving relative resources.
-   * @returns {Promise<Object>}
-   */
-  async parse(e, t) {
-    const n = super.parse(e), { scene: s, workingPath: r, fetchOptions: o, adjustmentTransform: a } = this, c = new V(s);
-    c.workingPath = r, c.fetchOptions = o, a && (c.adjustmentTransform = a);
-    const f = await c.parse(n.glbBytes, t, "glb"), h = f.scene;
-    return {
-      ...n,
-      scene: h,
-      container: f.container,
-      metadata: f.metadata
-    };
-  }
-}
-const _ = /* @__PURE__ */ new i();
-class Z {
-  constructor() {
-    this.min = new i(-1, -1, -1), this.max = new i(1, 1, 1), this.transform = u.Identity(), this.inverseTransform = u.Identity(), this.points = new Array(8).fill(null).map(() => new i());
-  }
-  update() {
-    const { min: e, max: t, points: n, transform: s } = this;
-    s.invertToRef(this.inverseTransform);
-    let r = 0;
-    for (let o = 0; o <= 1; o++)
-      for (let a = 0; a <= 1; a++)
-        for (let c = 0; c <= 1; c++)
-          n[r].set(
-            o === 0 ? e.x : t.x,
-            a === 0 ? e.y : t.y,
-            c === 0 ? e.z : t.z
-          ), i.TransformCoordinatesToRef(
-            n[r],
-            s,
-            n[r]
-          ), r++;
-  }
-  clampPoint(e, t) {
-    const { min: n, max: s, transform: r, inverseTransform: o } = this;
-    return i.TransformCoordinatesToRef(e, o, t), t.x = Math.max(n.x, Math.min(s.x, t.x)), t.y = Math.max(n.y, Math.min(s.y, t.y)), t.z = Math.max(n.z, Math.min(s.z, t.z)), i.TransformCoordinatesToRef(t, r, t), t;
-  }
-  distanceToPoint(e) {
-    return this.clampPoint(e, _), i.Distance(_, e);
-  }
-  intersectsFrustum(e) {
-    return G.IsInFrustum(this.points, e);
-  }
-}
-const g = /* @__PURE__ */ new i(), b = /* @__PURE__ */ new i(), T = /* @__PURE__ */ new i(), y = /* @__PURE__ */ new i(), I = /* @__PURE__ */ new i();
-class $ {
-  constructor() {
-    this.sphere = null, this.obb = null;
-  }
-  setSphereData(e, t, n, s, r) {
-    const o = new Y(I, I), a = o.centerWorld.set(e, t, n);
-    i.TransformCoordinatesToRef(a, r, a), r.decompose(y, null, null), o.radiusWorld = s * Math.max(Math.abs(y.x), Math.abs(y.y), Math.abs(y.z)), this.sphere = o;
-  }
-  setObbData(e, t) {
-    const n = new Z();
-    g.set(e[3], e[4], e[5]), b.set(e[6], e[7], e[8]), T.set(e[9], e[10], e[11]);
-    const s = g.length(), r = b.length(), o = T.length();
-    g.normalize(), b.normalize(), T.normalize(), s === 0 && i.CrossToRef(b, T, g), r === 0 && i.CrossToRef(g, T, b), o === 0 && i.CrossToRef(g, b, T), n.transform = u.FromValues(
-      g.x,
-      b.x,
-      T.x,
-      e[0],
-      g.y,
-      b.y,
-      T.y,
-      e[1],
-      g.z,
-      b.z,
-      T.z,
-      e[2],
-      0,
-      0,
-      0,
-      1
-    ).transpose().multiply(t), n.min.set(-s, -r, -o), n.max.set(s, r, o), n.update(), this.obb = n;
-  }
-  distanceToPoint(e) {
-    const { sphere: t, obb: n } = this;
-    let s = -1 / 0, r = -1 / 0;
-    return t && (s = i.Distance(e, t.centerWorld) - t.radiusWorld, s = Math.max(s, 0)), n && (r = n.distanceToPoint(e)), s > r ? s : r;
-  }
-  intersectsFrustum(e) {
-    const { sphere: t, obb: n } = this;
-    return t && !t.isInFrustum(e) || n && !n.intersectsFrustum(e) ? !1 : !!(t || n);
-  }
-}
-const D = /* @__PURE__ */ u.Identity(), C = /* @__PURE__ */ new i(), B = /* @__PURE__ */ new Array(6).fill(null).map(() => new U(0, 0, 0, 0));
-class ce extends L {
-  /**
-   * @param {string} url - URL of the root tileset JSON.
-   * @param {Scene} scene - The Babylon.js scene to render tiles into.
-   */
-  constructor(e, t) {
-    super(e), this.scene = t, this.group = new W("tiles-root", t), this.checkCollisions = !1, this._upRotationMatrix = u.Identity(), this._observables = /* @__PURE__ */ new Map();
-  }
-  addEventListener(e, t) {
-    this._observables.has(e) || this._observables.set(e, new Q()), this._observables.get(e).add(t);
-  }
-  removeEventListener(e, t) {
-    if (!this._observables.has(e))
-      return;
-    this._observables.get(e).removeCallback(t);
-  }
-  dispatchEvent(e) {
-    if (!this._observables.has(e.type))
-      return;
-    this._observables.get(e.type).notifyObservers(e);
-  }
-  loadRootTileset(...e) {
-    return super.loadRootTileset(...e).then((t) => {
-      const { asset: n } = t;
-      switch ((n && n.gltfUpAxis || "y").toLowerCase()) {
-        case "x":
-          u.RotationYToRef(-Math.PI / 2, this._upRotationMatrix);
-          break;
-        case "y":
-          u.RotationXToRef(Math.PI / 2, this._upRotationMatrix);
-          break;
-      }
-      return t;
-    });
-  }
-  preprocessNode(e, t, n = null) {
-    super.preprocessNode(e, t, n);
-    const s = u.Identity();
-    e.transform && u.FromValuesToRef(...e.transform, s), n && s.multiplyToRef(n.engineData.transform, s);
-    const r = u.Identity();
-    s.invertToRef(r);
-    const o = new $();
-    "sphere" in e.boundingVolume && o.setSphereData(...e.boundingVolume.sphere, s), "box" in e.boundingVolume && o.setObbData(e.boundingVolume.box, s), e.engineData.transform = s, e.engineData.transformInverse = r, e.engineData.boundingVolume = o, e.engineData.active = !1, e.engineData.scene = null, e.engineData.container = null;
-  }
-  async parseTile(e, t, n, s, r) {
-    const o = t.engineData, a = this.scene, c = j(s), f = this.fetchOptions, h = o.transform, d = this._upRotationMatrix;
-    let m = null;
-    const w = (S(e) || n).toLowerCase();
-    switch (w) {
-      case "b3dm": {
-        const l = new H(a);
-        l.workingPath = c, l.fetchOptions = f, l.adjustmentTransform.copyFrom(d), m = await l.parse(e, s);
-        break;
-      }
-      case "gltf":
-      case "glb": {
-        const l = new V(a);
-        l.workingPath = c, l.fetchOptions = f, l.adjustmentTransform.copyFrom(d), m = await l.parse(e, s, n);
-        break;
-      }
-      default:
-        throw new Error(`BabylonTilesRenderer: Content type "${w}" not supported.`);
-    }
-    const p = m.scene;
-    if (p.setEnabled(!1), p.computeWorldMatrix(!0).multiply(h).decompose(p.scaling, p.rotationQuaternion, p.position), r.aborted) {
-      m.container.dispose();
-      return;
-    }
-    if (this.checkCollisions)
-      for (const l of p.getChildMeshes())
-        l.checkCollisions = !0;
-    o.scene = p, o.container = m.container, o.metadata = m.metadata || null;
-  }
-  disposeTile(e) {
-    super.disposeTile(e);
-    const t = e.engineData;
-    t.container && (t.container.dispose(), t.container = null, t.scene = null, t.metadata = null);
-  }
-  setTileVisible(e, t) {
-    const s = e.engineData.scene;
-    s && (t ? (s.parent = this.group, s.setEnabled(!0)) : (s.parent = null, s.setEnabled(!1)), super.setTileVisible(e, t));
-  }
-  calculateBytesUsed(e) {
-    return 1;
-  }
-  calculateTileViewError(e, t) {
-    const { scene: n } = this, r = e.engineData.boundingVolume, o = n.activeCamera, a = n.getEngine(), c = a.getHardwareScalingLevel(), f = a.getRenderWidth() * c, h = a.getRenderHeight() * c, m = o.getProjectionMatrix().m, w = m[15] === 1;
-    let p, l;
-    if (w) {
-      const R = 2 / m[0], F = 2 / m[5];
-      l = Math.max(F / h, R / f);
-    } else
-      p = 2 / m[5] / h;
-    this.group.getWorldMatrix().invertToRef(D), i.TransformCoordinatesToRef(o.globalPosition, D, C), N.GetPlanesToRef(o.getTransformationMatrix(!0), B);
-    const k = B.map((R) => R.transform(D)), M = r.distanceToPoint(C);
-    let v;
-    w ? v = e.geometricError / l : v = M === 0 ? 1 / 0 : e.geometricError / (M * p);
-    const z = r.intersectsFrustum(k);
-    t.inView = z, t.error = v, t.distanceFromCamera = M;
-  }
-  /**
-   * Disposes the renderer, releasing all loaded tile content and the root transform node.
-   * @returns {void}
-   */
-  dispose() {
-    super.dispose(), this.group.dispose();
-  }
-}
-export {
-  ce as TilesRenderer
+import { BoundingSphere as p } from "@babylonjs/core/Culling/boundingSphere";
+import { BoundingBox as m } from "@babylonjs/core/Culling/boundingBox";
+//#region src/babylonjs/renderer/loaders/GLTFLoader.js
+var h = /* @__PURE__ */ o.Identity(), g = class extends e {
+	constructor(e) {
+		super(), this.scene = e, this.adjustmentTransform = o.Identity();
+	}
+	async parse(e, t, n) {
+		let { scene: r, workingPath: i, adjustmentTransform: a } = this, o = i;
+		o.length && !/[\\/]$/.test(o) && (o += "/");
+		let c = n === "gltf" ? ".gltf" : ".glb", l = null, u = await f(new File([e], t), r, {
+			pluginExtension: c,
+			rootUrl: o,
+			pluginOptions: { gltf: { onParsed: (e) => {
+				l = e.json;
+			} } }
+		});
+		u.addAllToScene();
+		let d = u.rootNodes[0];
+		d.rotationQuaternion = s.Identity();
+		let p = d.computeWorldMatrix(!0);
+		return a.multiplyToRef(p, h), h.decompose(d.scaling, d.rotationQuaternion, d.position), {
+			scene: d,
+			container: u,
+			metadata: l
+		};
+	}
+}, _ = class extends r {
+	constructor(e) {
+		super(), this.scene = e, this.adjustmentTransform = o.Identity();
+	}
+	async parse(e, t) {
+		let n = super.parse(e), { scene: r, workingPath: i, fetchOptions: a, adjustmentTransform: o } = this, s = new g(r);
+		s.workingPath = i, s.fetchOptions = a, o && (s.adjustmentTransform = o);
+		let c = await s.parse(n.glbBytes, t, "glb"), l = c.scene;
+		return {
+			...n,
+			scene: l,
+			container: c.container,
+			metadata: c.metadata
+		};
+	}
+}, v = /* @__PURE__ */ new c(), y = class {
+	constructor() {
+		this.min = new c(-1, -1, -1), this.max = new c(1, 1, 1), this.transform = o.Identity(), this.inverseTransform = o.Identity(), this.points = Array(8).fill(null).map(() => new c());
+	}
+	update() {
+		let { min: e, max: t, points: n, transform: r } = this;
+		r.invertToRef(this.inverseTransform);
+		let i = 0;
+		for (let a = 0; a <= 1; a++) for (let o = 0; o <= 1; o++) for (let s = 0; s <= 1; s++) n[i].set(a === 0 ? e.x : t.x, o === 0 ? e.y : t.y, s === 0 ? e.z : t.z), c.TransformCoordinatesToRef(n[i], r, n[i]), i++;
+	}
+	clampPoint(e, t) {
+		let { min: n, max: r, transform: i, inverseTransform: a } = this;
+		return c.TransformCoordinatesToRef(e, a, t), t.x = Math.max(n.x, Math.min(r.x, t.x)), t.y = Math.max(n.y, Math.min(r.y, t.y)), t.z = Math.max(n.z, Math.min(r.z, t.z)), c.TransformCoordinatesToRef(t, i, t), t;
+	}
+	distanceToPoint(e) {
+		return this.clampPoint(e, v), c.Distance(v, e);
+	}
+	intersectsFrustum(e) {
+		return m.IsInFrustum(this.points, e);
+	}
+}, b = /* @__PURE__ */ new c(), x = /* @__PURE__ */ new c(), S = /* @__PURE__ */ new c(), C = /* @__PURE__ */ new c(), w = /* @__PURE__ */ new c(), T = class {
+	constructor() {
+		this.sphere = null, this.obb = null;
+	}
+	setSphereData(e, t, n, r, i) {
+		let a = new p(w, w), o = a.centerWorld.set(e, t, n);
+		c.TransformCoordinatesToRef(o, i, o), i.decompose(C, null, null), a.radiusWorld = r * Math.max(Math.abs(C.x), Math.abs(C.y), Math.abs(C.z)), this.sphere = a;
+	}
+	setObbData(e, t) {
+		let n = new y();
+		b.set(e[3], e[4], e[5]), x.set(e[6], e[7], e[8]), S.set(e[9], e[10], e[11]);
+		let r = b.length(), i = x.length(), a = S.length();
+		b.normalize(), x.normalize(), S.normalize(), r === 0 && c.CrossToRef(x, S, b), i === 0 && c.CrossToRef(b, S, x), a === 0 && c.CrossToRef(b, x, S), n.transform = o.FromValues(b.x, x.x, S.x, e[0], b.y, x.y, S.y, e[1], b.z, x.z, S.z, e[2], 0, 0, 0, 1).transpose().multiply(t), n.min.set(-r, -i, -a), n.max.set(r, i, a), n.update(), this.obb = n;
+	}
+	distanceToPoint(e) {
+		let { sphere: t, obb: n } = this, r = -Infinity, i = -Infinity;
+		return t && (r = c.Distance(e, t.centerWorld) - t.radiusWorld, r = Math.max(r, 0)), n && (i = n.distanceToPoint(e)), r > i ? r : i;
+	}
+	intersectsFrustum(e) {
+		let { sphere: t, obb: n } = this;
+		return t && !t.isInFrustum(e) || n && !n.intersectsFrustum(e) ? !1 : !!(t || n);
+	}
+}, E = /* @__PURE__ */ o.Identity(), D = /* @__PURE__ */ new c(), O = /* @__PURE__ */ [
+	,
+	,
+	,
+	,
+	,
+	,
+].fill(null).map(() => new d(0, 0, 0, 0)), k = class extends i {
+	constructor(e, t) {
+		super(e), this.scene = t, this.group = new a("tiles-root", t), this.checkCollisions = !1, this._upRotationMatrix = o.Identity(), this._observables = /* @__PURE__ */ new Map();
+	}
+	addEventListener(e, t) {
+		this._observables.has(e) || this._observables.set(e, new u()), this._observables.get(e).add(t);
+	}
+	removeEventListener(e, t) {
+		this._observables.has(e) && this._observables.get(e).removeCallback(t);
+	}
+	dispatchEvent(e) {
+		this._observables.has(e.type) && this._observables.get(e.type).notifyObservers(e);
+	}
+	loadRootTileset(...e) {
+		return super.loadRootTileset(...e).then((e) => {
+			let { asset: t } = e;
+			switch ((t && t.gltfUpAxis || "y").toLowerCase()) {
+				case "x":
+					o.RotationYToRef(-Math.PI / 2, this._upRotationMatrix);
+					break;
+				case "y":
+					o.RotationXToRef(Math.PI / 2, this._upRotationMatrix);
+					break;
+			}
+			return e;
+		});
+	}
+	preprocessNode(e, t, n = null) {
+		super.preprocessNode(e, t, n);
+		let r = o.Identity();
+		e.transform && o.FromValuesToRef(...e.transform, r), n && r.multiplyToRef(n.engineData.transform, r);
+		let i = o.Identity();
+		r.invertToRef(i);
+		let a = new T();
+		"sphere" in e.boundingVolume && a.setSphereData(...e.boundingVolume.sphere, r), "box" in e.boundingVolume && a.setObbData(e.boundingVolume.box, r), e.engineData.transform = r, e.engineData.transformInverse = i, e.engineData.boundingVolume = a, e.engineData.active = !1, e.engineData.scene = null, e.engineData.container = null;
+	}
+	async parseTile(e, r, i, a, o) {
+		let s = r.engineData, c = this.scene, l = t(a), u = this.fetchOptions, d = s.transform, f = this._upRotationMatrix, p = null, m = (n(e) || i).toLowerCase();
+		switch (m) {
+			case "b3dm": {
+				let t = new _(c);
+				t.workingPath = l, t.fetchOptions = u, t.adjustmentTransform.copyFrom(f), p = await t.parse(e, a);
+				break;
+			}
+			case "gltf":
+			case "glb": {
+				let t = new g(c);
+				t.workingPath = l, t.fetchOptions = u, t.adjustmentTransform.copyFrom(f), p = await t.parse(e, a, i);
+				break;
+			}
+			default: throw Error(`BabylonTilesRenderer: Content type "${m}" not supported.`);
+		}
+		let h = p.scene;
+		if (h.setEnabled(!1), h.computeWorldMatrix(!0).multiply(d).decompose(h.scaling, h.rotationQuaternion, h.position), o.aborted) {
+			p.container.dispose();
+			return;
+		}
+		if (this.checkCollisions) for (let e of h.getChildMeshes()) e.checkCollisions = !0;
+		s.scene = h, s.container = p.container, s.metadata = p.metadata || null;
+	}
+	disposeTile(e) {
+		super.disposeTile(e);
+		let t = e.engineData;
+		t.container && (t.container.dispose(), t.container = null, t.scene = null, t.metadata = null);
+	}
+	setTileVisible(e, t) {
+		let n = e.engineData.scene;
+		n && (t ? (n.parent = this.group, n.setEnabled(!0)) : (n.parent = null, n.setEnabled(!1)), super.setTileVisible(e, t));
+	}
+	calculateBytesUsed(e) {
+		return 1;
+	}
+	calculateTileViewError(e, t) {
+		let { scene: n } = this, r = e.engineData.boundingVolume, i = n.activeCamera, a = n.getEngine(), o = a.getHardwareScalingLevel(), s = a.getRenderWidth() * o, u = a.getRenderHeight() * o, d = i.getProjectionMatrix().m, f = d[15] === 1, p, m;
+		if (f) {
+			let e = 2 / d[0], t = 2 / d[5];
+			m = Math.max(t / u, e / s);
+		} else p = 2 / d[5] / u;
+		this.group.getWorldMatrix().invertToRef(E), c.TransformCoordinatesToRef(i.globalPosition, E, D), l.GetPlanesToRef(i.getTransformationMatrix(!0), O);
+		let h = O.map((e) => e.transform(E)), g = r.distanceToPoint(D), _;
+		_ = f ? e.geometricError / m : g === 0 ? Infinity : e.geometricError / (g * p), t.inView = r.intersectsFrustum(h), t.error = _, t.distanceFromCamera = g;
+	}
+	dispose() {
+		super.dispose(), this.group.dispose();
+	}
 };
+//#endregion
+export { k as TilesRenderer };
+
 //# sourceMappingURL=index.babylonjs.js.map
