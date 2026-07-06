@@ -1,6 +1,6 @@
-import { c as e, f as t, u as n, v as r } from "./renderer-DeQJfJ4K.js";
+import { LoaderBase as e, arrayToString as t, readMagicBytes as n, traverseSet as r } from "./renderer-BcKWXcM-.js";
 //#region src/core/plugins/auth/CesiumIonAuth.js
-var i = class {
+var CesiumIonAuth = class {
 	constructor(e = {}) {
 		let { apiToken: t, autoRefreshToken: n = !1 } = e;
 		this.apiToken = t, this.autoRefreshToken = n, this.authURL = null, this._tokenRefreshPromise = null, this._bearerToken = null;
@@ -25,20 +25,20 @@ var i = class {
 		}
 		return this._tokenRefreshPromise;
 	}
-}, a = "https://tile.googleapis.com/v1/createSession", o = class {
+}, i = "https://tile.googleapis.com/v1/createSession", GoogleCloudAuth = class {
 	get isMapTilesSession() {
-		return this.authURL === a;
+		return this.authURL === i;
 	}
 	constructor(e = {}) {
 		let { apiToken: t, sessionOptions: n = null, autoRefreshToken: r = !1 } = e;
-		this.apiToken = t, this.autoRefreshToken = r, this.authURL = a, this.sessionToken = null, this.sessionOptions = n, this._tokenRefreshPromise = null;
+		this.apiToken = t, this.autoRefreshToken = r, this.authURL = i, this.sessionToken = null, this.sessionOptions = n, this._tokenRefreshPromise = null;
 	}
 	async fetch(e, t) {
 		this.sessionToken === null && this.isMapTilesSession && this.refreshToken(t), await this._tokenRefreshPromise;
 		let n = new URL(e);
 		n.searchParams.set("key", this.apiToken), this.sessionToken && n.searchParams.set("session", this.sessionToken);
 		let r = await fetch(n, t);
-		return r.status >= 400 && r.status <= 499 && this.autoRefreshToken && (await this.refreshToken(t), this.sessionToken && n.searchParams.set("session", this.sessionToken), r = await fetch(n, t)), this.sessionToken === null && !this.isMapTilesSession ? r.json().then((e) => (this.sessionToken = s(e), e)) : r;
+		return r.status >= 400 && r.status <= 499 && this.autoRefreshToken && (await this.refreshToken(t), this.sessionToken && n.searchParams.set("session", this.sessionToken), r = await fetch(n, t)), this.sessionToken === null && !this.isMapTilesSession ? r.json().then((e) => (this.sessionToken = getSessionToken(e), e)) : r;
 	}
 	refreshToken(e) {
 		if (this._tokenRefreshPromise === null) {
@@ -51,12 +51,12 @@ var i = class {
 			}), this._tokenRefreshPromise = fetch(t, n).then((e) => {
 				if (!e.ok) throw Error(`GoogleCloudAuth: Failed to load data with error code ${e.status}`);
 				return e.json();
-			}).then((e) => (this.sessionToken = s(e), this._tokenRefreshPromise = null, e));
+			}).then((e) => (this.sessionToken = getSessionToken(e), this._tokenRefreshPromise = null, e));
 		}
 		return this._tokenRefreshPromise;
 	}
 };
-function s(e) {
+function getSessionToken(e) {
 	if ("session" in e) return e.session;
 	{
 		let t = null, n = e.root;
@@ -71,7 +71,7 @@ function s(e) {
 }
 //#endregion
 //#region src/core/plugins/GoogleAttributionsManager.js
-var c = class {
+var GoogleAttributionsManager = class {
 	constructor() {
 		this.creditsCount = {};
 	}
@@ -94,13 +94,13 @@ var c = class {
 			return t[1] - n;
 		}).map((e) => e[0]).join("; ");
 	}
-}, l = "https://tile.googleapis.com/v1/3dtiles/root.json", u = class {
+}, a = "https://tile.googleapis.com/v1/3dtiles/root.json", GoogleCloudAuthPlugin = class {
 	constructor({ apiToken: e, sessionOptions: t = null, autoRefreshToken: n = !1, logoUrl: r = null, useRecommendedSettings: i = !0 }) {
-		this.name = "GOOGLE_CLOUD_AUTH_PLUGIN", this.apiToken = e, this.useRecommendedSettings = i, this.logoUrl = r, this.auth = new o({
+		this.name = "GOOGLE_CLOUD_AUTH_PLUGIN", this.apiToken = e, this.useRecommendedSettings = i, this.logoUrl = r, this.auth = new GoogleCloudAuth({
 			apiToken: e,
 			autoRefreshToken: n,
 			sessionOptions: t
-		}), this.tiles = null, this._visibilityChangeCallback = null, this._attributionsManager = new c(), this._logoAttribution = {
+		}), this.tiles = null, this._visibilityChangeCallback = null, this._attributionsManager = new GoogleAttributionsManager(), this._logoAttribution = {
 			value: "",
 			type: "image",
 			collapsible: !1
@@ -112,7 +112,7 @@ var c = class {
 	}
 	init(e) {
 		let { useRecommendedSettings: t, auth: n } = this;
-		e.resetFailedTiles(), e.rootURL ??= l, n.sessionOptions || (n.authURL = e.rootURL), t && !n.isMapTilesSession && (e.errorTarget = 20), this.tiles = e, this._visibilityChangeCallback = ({ tile: e, visible: t }) => {
+		e.resetFailedTiles(), e.rootURL ??= a, n.sessionOptions || (n.authURL = e.rootURL), t && !n.isMapTilesSession && (e.errorTarget = 20), this.tiles = e, this._visibilityChangeCallback = ({ tile: e, visible: t }) => {
 			let n = e.engineData.metadata?.asset?.copyright || "";
 			t ? this._attributionsManager.addAttributions(n) : this._attributionsManager.removeAttributions(n);
 		}, e.addEventListener("tile-visibility-change", this._visibilityChangeCallback);
@@ -126,7 +126,7 @@ var c = class {
 	async fetchData(e, t) {
 		return this.auth.fetch(e, t);
 	}
-}, d = class {
+}, CesiumIonAuthPlugin = class {
 	get apiToken() {
 		return this.auth.apiToken;
 	}
@@ -140,13 +140,13 @@ var c = class {
 		this.auth.autoRefreshToken = e;
 	}
 	constructor(e = {}) {
-		let { apiToken: t, assetId: n = null, autoRefreshToken: r = !1, useRecommendedSettings: a = !0, assetTypeHandler: o = (e, t, n) => {
+		let { apiToken: t, assetId: n = null, autoRefreshToken: r = !1, useRecommendedSettings: i = !0, assetTypeHandler = (e, t, n) => {
 			console.warn(`CesiumIonAuthPlugin: Cesium Ion asset type "${e}" unhandled.`);
 		} } = e;
-		this.name = "CESIUM_ION_AUTH_PLUGIN", this.auth = new i({
+		this.name = "CESIUM_ION_AUTH_PLUGIN", this.auth = new CesiumIonAuth({
 			apiToken: t,
 			autoRefreshToken: r
-		}), this.assetId = n, this.autoRefreshToken = r, this.useRecommendedSettings = a, this.assetTypeHandler = o, this.tiles = null, this._tileSetVersion = -1, this._attributions = [];
+		}), this.assetId = n, this.autoRefreshToken = r, this.useRecommendedSettings = i, this.assetTypeHandler = assetTypeHandler, this.tiles = null, this._tileSetVersion = -1, this._attributions = [];
 	}
 	init(e) {
 		this.assetId !== null && (e.rootURL = `https://api.cesium.com/v1/assets/${this.assetId}/endpoint`), this.tiles = e, this.auth.authURL = e.rootURL, e.resetFailedTiles();
@@ -174,7 +174,7 @@ var c = class {
 		let t = this.tiles;
 		if ("externalType" in e) {
 			let n = new URL(e.options.url);
-			t.rootURL = e.options.url, t.registerPlugin(new u({
+			t.rootURL = e.options.url, t.registerPlugin(new GoogleCloudAuthPlugin({
 				apiToken: n.searchParams.get("key"),
 				autoRefreshToken: this.autoRefreshToken,
 				useRecommendedSettings: this.useRecommendedSettings
@@ -192,13 +192,13 @@ var c = class {
 };
 //#endregion
 //#region src/core/plugins/SUBTREELoader.js
-function f(e) {
+function isOctreeSubdivision(e) {
 	return e.implicitTilingData.root.implicitTiling.subdivisionScheme === "OCTREE";
 }
-function p(e) {
-	return f(e) ? 8 : 4;
+function getBoundsDivider(e) {
+	return isOctreeSubdivision(e) ? 8 : 4;
 }
-function m(e, t) {
+function getSubtreeCoordinates(e, t) {
 	if (!e) return [
 		0,
 		0,
@@ -208,13 +208,13 @@ function m(e, t) {
 	return [
 		2 * n + t % 2,
 		2 * r + Math.floor(t / 2) % 2,
-		f(e) ? 2 * i + Math.floor(t / 4) % 2 : 0
+		isOctreeSubdivision(e) ? 2 * i + Math.floor(t / 4) % 2 : 0
 	];
 }
-var h = class {
+var SubtreeTile = class {
 	constructor(e, t) {
 		this.parent = e, this.children = [], this.geometricError = 0, this.boundingVolume = null;
-		let [n, r, i] = m(e, t);
+		let [n, r, i] = getSubtreeCoordinates(e, t);
 		this.implicitTilingData = {
 			level: e.implicitTilingData.level + 1,
 			root: e.implicitTilingData.root,
@@ -233,12 +233,12 @@ var h = class {
 			implicitTilingData: { ...e.implicitTilingData }
 		};
 	}
-}, g = class extends e {
+}, SUBTREELoader = class extends e {
 	constructor(e) {
 		super(), this.tile = e, this.rootTile = e.implicitTilingData.root, this.workingPath = null;
 	}
 	parseBuffer(e) {
-		let r = new DataView(e), i = 0, a = t(r);
+		let r = new DataView(e), i = 0, a = n(r);
 		console.assert(a === "subt", "SUBTREELoader: The magic bytes equal \"subt\"."), i += 4;
 		let o = r.getUint32(i, !0);
 		console.assert(o === 1, "SUBTREELoader: The version listed in the header is \"1\"."), i += 4;
@@ -246,7 +246,7 @@ var h = class {
 		i += 8;
 		let c = r.getUint32(i, !0);
 		i += 8;
-		let l = JSON.parse(n(new Uint8Array(e, i, s)));
+		let l = JSON.parse(t(new Uint8Array(e, i, s)));
 		return i += s, {
 			version: o,
 			subtreeJson: l,
@@ -315,7 +315,7 @@ var h = class {
 		return e;
 	}
 	parseAvailability(e, t, n) {
-		let r = p(this.rootTile), i = this.rootTile.implicitTiling.subtreeLevels, a = (r ** +i - 1) / (r - 1), o = r ** +i;
+		let r = getBoundsDivider(this.rootTile), i = this.rootTile.implicitTiling.subtreeLevels, a = (r ** +i - 1) / (r - 1), o = r ** +i;
 		e._tileAvailability = this.parseAvailabilityBitstream(t.tileAvailability, n, a), e._contentAvailabilityBitstreams = [];
 		for (let r = 0; r < t.contentAvailabilityHeaders.length; r++) {
 			let i = this.parseAvailabilityBitstream(t.contentAvailabilityHeaders[r], n, a);
@@ -335,7 +335,7 @@ var h = class {
 		};
 	}
 	expandSubtree(e, t) {
-		let n = h.clone(e);
+		let n = SubtreeTile.clone(e);
 		for (let r = 0; t && r < t._contentAvailabilityBitstreams.length; r++) if (t && this.getBit(t._contentAvailabilityBitstreams[r], 0)) {
 			n.content = { uri: this.parseImplicitURI(e, this.rootTile.content.uri) };
 			break;
@@ -350,7 +350,7 @@ var h = class {
 	transcodeSubtreeTiles(e, t) {
 		let n = [e], r = [];
 		for (let e = 1; e < this.rootTile.implicitTiling.subtreeLevels; e++) {
-			let i = p(this.rootTile), a = (i ** +e - 1) / (i - 1), o = i * n.length;
+			let i = getBoundsDivider(this.rootTile), a = (i ** +e - 1) / (i - 1), o = i * n.length;
 			for (let e = 0; e < o; e++) {
 				let o = a + e, s = e >> Math.log2(i), c = n[s];
 				if (!this.getBit(t._tileAvailability, o)) {
@@ -365,7 +365,7 @@ var h = class {
 		return n;
 	}
 	deriveChildTile(e, t, n, r) {
-		let i = new h(t, r);
+		let i = new SubtreeTile(t, r);
 		i.boundingVolume = this.getTileBoundingVolume(i), i.geometricError = this.getGeometricError(i);
 		for (let t = 0; e && t < e._contentAvailabilityBitstreams.length; t++) if (e && this.getBit(e._contentAvailabilityBitstreams[t], n)) {
 			i.content = { uri: this.parseImplicitURI(i, this.rootTile.content.uri) };
@@ -388,14 +388,14 @@ var h = class {
 				let t = n[e];
 				t < -Math.PI ? n[e] += 2 * Math.PI : t > Math.PI && (n[e] -= 2 * Math.PI);
 			}
-			if (f(e)) {
+			if (isOctreeSubdivision(e)) {
 				let t = n[4], r = (n[5] - t) / 2 ** e.implicitTilingData.level;
 				n[4] = t + r * e.implicitTilingData.z, n[5] = t + r * (e.implicitTilingData.z + 1);
 			}
 			t.region = n;
 		}
 		if (this.rootTile.boundingVolume.box) {
-			let n = [...this.rootTile.boundingVolume.box], r = 2 ** e.implicitTilingData.level - 1, i = 2 ** -e.implicitTilingData.level, a = f(e) ? 3 : 2;
+			let n = [...this.rootTile.boundingVolume.box], r = 2 ** e.implicitTilingData.level - 1, i = 2 ** -e.implicitTilingData.level, a = isOctreeSubdivision(e) ? 3 : 2;
 			for (let t = 0; t < a; t++) {
 				n[3 + t * 3 + 0] *= i, n[3 + t * 3 + 1] *= i, n[3 + t * 3 + 2] *= i;
 				let a = n[3 + t * 3 + 0], o = n[3 + t * 3 + 1], s = n[3 + t * 3 + 2], c = t === 0 ? e.implicitTilingData.x : t === 1 ? e.implicitTilingData.y : e.implicitTilingData.z;
@@ -409,7 +409,7 @@ var h = class {
 		return this.rootTile.geometricError / 2 ** e.implicitTilingData.level;
 	}
 	listChildSubtrees(e, t) {
-		let n = [], r = p(this.rootTile);
+		let n = [], r = getBoundsDivider(this.rootTile);
 		for (let i = 0; i < t.length; i++) {
 			let a = t[i];
 			if (a !== void 0) for (let t = 0; t < r; t++) {
@@ -429,7 +429,7 @@ var h = class {
 		let r = this.parseImplicitURI(e, t), i = new URL(r, this.workingPath + "/");
 		return i.pathname = i.pathname.substring(0, i.pathname.lastIndexOf("/")), new URL(i.pathname + "/" + n, this.workingPath + "/").toString();
 	}
-}, _ = class {
+}, ImplicitTilingPlugin = class {
 	constructor() {
 		this.name = "IMPLICIT_TILING_PLUGIN";
 	}
@@ -448,7 +448,7 @@ var h = class {
 	}
 	parseTile(e, t, n) {
 		if (/^subtree$/i.test(n)) {
-			let n = new g(t);
+			let n = new SUBTREELoader(t);
 			return n.workingPath = t.internal.basePath, n.fetchOptions = this.tiles.fetchOptions, n.parse(e);
 		}
 	}
@@ -464,7 +464,7 @@ var h = class {
 			this.tiles.processNodeQueue.remove(e);
 		}), e.children.length = 0);
 	}
-}, v = class {
+}, EnforceNonZeroErrorPlugin = class {
 	constructor() {
 		this.name = "ENFORCE_NONZERO_ERROR", this.priority = -Infinity, this.originalError = /* @__PURE__ */ new Map();
 	}
@@ -483,10 +483,10 @@ var h = class {
 };
 //#endregion
 //#region src/core/plugins/loaders/QuantizedMeshLoaderBase.js
-function y(e) {
+function zigZagDecode(e) {
 	return e >> 1 ^ -(e & 1);
 }
-var b = class extends e {
+var QuantizedMeshLoaderBase = class extends e {
 	constructor(...e) {
 		super(...e), this.fetchOptions.header = { Accept: "application/vnd.quantized-mesh,application/octet-stream;q=0.9" };
 	}
@@ -495,112 +495,112 @@ var b = class extends e {
 		return t.header = t.header || {}, t.header.Accept = "application/vnd.quantized-mesh,application/octet-stream;q=0.9", t.header.Accept += ";extensions=octvertexnormals-watermask-metadata", super.loadAsync(...e);
 	}
 	parse(e) {
-		let t = 0, n = new DataView(e), r = () => {
+		let t = 0, n = new DataView(e), readFloat64 = () => {
 			let e = n.getFloat64(t, !0);
 			return t += 8, e;
-		}, i = () => {
+		}, readFloat32 = () => {
 			let e = n.getFloat32(t, !0);
 			return t += 4, e;
-		}, a = () => {
+		}, readInt = () => {
 			let e = n.getUint32(t, !0);
 			return t += 4, e;
-		}, o = () => {
+		}, readByte = () => {
 			let e = n.getUint8(t);
 			return t += 1, e;
-		}, s = (n, r) => {
+		}, readBuffer = (n, r) => {
 			let i = new r(e, t, n);
 			return t += n * r.BYTES_PER_ELEMENT, i;
-		}, c = {
+		}, r = {
 			center: [
-				r(),
-				r(),
-				r()
+				readFloat64(),
+				readFloat64(),
+				readFloat64()
 			],
-			minHeight: i(),
-			maxHeight: i(),
+			minHeight: readFloat32(),
+			maxHeight: readFloat32(),
 			sphereCenter: [
-				r(),
-				r(),
-				r()
+				readFloat64(),
+				readFloat64(),
+				readFloat64()
 			],
-			sphereRadius: r(),
+			sphereRadius: readFloat64(),
 			horizonOcclusionPoint: [
-				r(),
-				r(),
-				r()
+				readFloat64(),
+				readFloat64(),
+				readFloat64()
 			]
-		}, l = a(), u = s(l, Uint16Array), d = s(l, Uint16Array), f = s(l, Uint16Array), p = new Float32Array(l), m = new Float32Array(l), h = new Float32Array(l), g = 0, _ = 0, v = 0, b = 32767;
-		for (let e = 0; e < l; ++e) g += y(u[e]), _ += y(d[e]), v += y(f[e]), p[e] = g / b, m[e] = _ / b, h[e] = v / b;
-		let S = l > 65536, C = S ? Uint32Array : Uint16Array;
-		t = S ? Math.ceil(t / 4) * 4 : Math.ceil(t / 2) * 2;
-		let w = s(a() * 3, C), T = 0;
-		for (var E = 0; E < w.length; ++E) {
-			let e = w[E];
-			w[E] = T - e, e === 0 && ++T;
+		}, i = readInt(), a = readBuffer(i, Uint16Array), o = readBuffer(i, Uint16Array), s = readBuffer(i, Uint16Array), c = new Float32Array(i), l = new Float32Array(i), u = new Float32Array(i), d = 0, f = 0, p = 0, m = 32767;
+		for (let e = 0; e < i; ++e) d += zigZagDecode(a[e]), f += zigZagDecode(o[e]), p += zigZagDecode(s[e]), c[e] = d / m, l[e] = f / m, u[e] = p / m;
+		let h = i > 65536, g = h ? Uint32Array : Uint16Array;
+		t = h ? Math.ceil(t / 4) * 4 : Math.ceil(t / 2) * 2;
+		let _ = readBuffer(readInt() * 3, g), v = 0;
+		for (var y = 0; y < _.length; ++y) {
+			let e = _[y];
+			_[y] = v - e, e === 0 && ++v;
 		}
-		let D = (e, t) => m[t] - m[e], O = (e, t) => -D(e, t), k = (e, t) => p[e] - p[t], A = (e, t) => -k(e, t), j = s(a(), C);
-		j.sort(D);
-		let M = s(a(), C);
-		M.sort(k);
-		let N = s(a(), C);
-		N.sort(O);
-		let P = s(a(), C);
-		P.sort(A);
-		let F = {
-			westIndices: j,
-			southIndices: M,
-			eastIndices: N,
-			northIndices: P
-		}, I = {};
+		let vSort = (e, t) => l[t] - l[e], vSortReverse = (e, t) => -vSort(e, t), uSort = (e, t) => c[e] - c[t], uSortReverse = (e, t) => -uSort(e, t), b = readBuffer(readInt(), g);
+		b.sort(vSort);
+		let x = readBuffer(readInt(), g);
+		x.sort(uSort);
+		let S = readBuffer(readInt(), g);
+		S.sort(vSortReverse);
+		let C = readBuffer(readInt(), g);
+		C.sort(uSortReverse);
+		let w = {
+			westIndices: b,
+			southIndices: x,
+			eastIndices: S,
+			northIndices: C
+		}, T = {};
 		for (; t < n.byteLength;) {
-			let e = o(), t = a();
+			let e = readByte(), t = readInt();
 			if (e === 1) {
-				let t = s(l * 2, Uint8Array), n = new Float32Array(l * 3);
-				for (let e = 0; e < l; e++) {
+				let t = readBuffer(i * 2, Uint8Array), n = new Float32Array(i * 3);
+				for (let e = 0; e < i; e++) {
 					let r = t[2 * e + 0] / 255 * 2 - 1, i = t[2 * e + 1] / 255 * 2 - 1, a = 1 - (Math.abs(r) + Math.abs(i));
 					if (a < 0) {
 						let e = r;
-						r = (1 - Math.abs(i)) * x(e), i = (1 - Math.abs(e)) * x(i);
+						r = (1 - Math.abs(i)) * signNotZero(e), i = (1 - Math.abs(e)) * signNotZero(i);
 					}
 					let o = Math.sqrt(r * r + i * i + a * a);
 					n[3 * e + 0] = r / o, n[3 * e + 1] = i / o, n[3 * e + 2] = a / o;
 				}
-				I.octvertexnormals = {
+				T.octvertexnormals = {
 					extensionId: e,
 					normals: n
 				};
 			} else if (e === 2) {
 				let n = t === 1 ? 1 : 256;
-				I.watermask = {
+				T.watermask = {
 					extensionId: e,
-					mask: s(n * n, Uint8Array),
+					mask: readBuffer(n * n, Uint8Array),
 					size: n
 				};
 			} else if (e === 4) {
-				let t = s(a(), Uint8Array), n = new TextDecoder().decode(t);
-				I.metadata = {
+				let t = readBuffer(readInt(), Uint8Array), n = new TextDecoder().decode(t);
+				T.metadata = {
 					extensionId: e,
 					json: JSON.parse(n)
 				};
 			}
 		}
 		return {
-			header: c,
-			indices: w,
+			header: r,
+			indices: _,
 			vertexData: {
-				u: p,
-				v: m,
-				height: h
+				u: c,
+				v: l,
+				height: u
 			},
-			edgeIndices: F,
-			extensions: I
+			edgeIndices: w,
+			extensions: T
 		};
 	}
 };
-function x(e) {
+function signNotZero(e) {
 	return e < 0 ? -1 : 1;
 }
 //#endregion
-export { u as a, d as i, v as n, o, _ as r, i as s, b as t };
+export { CesiumIonAuth, CesiumIonAuthPlugin, EnforceNonZeroErrorPlugin, GoogleCloudAuth, GoogleCloudAuthPlugin, ImplicitTilingPlugin, QuantizedMeshLoaderBase };
 
-//# sourceMappingURL=plugins-BE36UzMG.js.map
+//# sourceMappingURL=plugins-DXabIFlk.js.map

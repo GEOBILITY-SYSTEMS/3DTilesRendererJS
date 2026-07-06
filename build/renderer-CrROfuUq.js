@@ -1,16 +1,16 @@
-import { D as e, E as t, d as n, f as r, i, j as a, m as o, n as s, r as c, t as l } from "./renderer-DeQJfJ4K.js";
-import { Box3 as u, BufferAttribute as d, BufferGeometry as f, Clock as p, Color as m, DefaultLoadingManager as h, Euler as g, EventDispatcher as _, Frustum as v, Group as y, InstancedMesh as ee, LoadingManager as b, MathUtils as x, Matrix3 as te, Matrix4 as S, Mesh as ne, OrthographicCamera as re, PerspectiveCamera as ie, Plane as ae, PlaneGeometry as oe, Points as se, PointsMaterial as ce, Quaternion as C, Ray as le, Raycaster as ue, ShaderMaterial as de, Sphere as fe, Spherical as pe, TextureUtils as me, Vector2 as w, Vector3 as T } from "three";
-import { GLTFLoader as he } from "three/addons/loaders/GLTFLoader.js";
-import { estimateBytesUsed as ge } from "three/addons/utils/BufferGeometryUtils.js";
+import { B3DMLoaderBase as e, CMPTLoaderBase as t, I3DMLoaderBase as n, PNTSLoaderBase as r, TilesRendererBase as i, WGS84_HEIGHT as a, WGS84_RADIUS as o, __exportAll as s, __name as c, getWorkingPath as l, readMagicBytes as u } from "./renderer-BcKWXcM-.js";
+import { Box3 as d, BufferAttribute as f, BufferGeometry as p, Clock as m, Color as h, DefaultLoadingManager as g, Euler as _, EventDispatcher as v, Frustum as y, Group as b, InstancedMesh as ee, LoadingManager as te, MathUtils as x, Matrix3 as ne, Matrix4 as S, Mesh as re, OrthographicCamera as ie, PerspectiveCamera as ae, Plane as oe, PlaneGeometry as se, Points as ce, PointsMaterial as le, Quaternion as C, Ray as ue, Raycaster as de, ShaderMaterial as fe, Sphere as pe, Spherical as me, TextureUtils as he, Vector2 as w, Vector3 as T } from "three";
+import { GLTFLoader as ge } from "three/addons/loaders/GLTFLoader.js";
+import { estimateBytesUsed as _e } from "three/addons/utils/BufferGeometryUtils.js";
 //#region src/three/renderer/loaders/B3DMLoader.js
-var _e = class extends i {
-	constructor(e = h) {
+var B3DMLoader = class extends e {
+	constructor(e = g) {
 		super(), this.manager = e, this.adjustmentTransform = new S();
 	}
 	parse(e) {
 		let t = super.parse(e), n = t.glbBytes.slice().buffer;
 		return new Promise((e, r) => {
-			let i = this.manager, a = this.fetchOptions, o = i.getHandler("path.gltf") || new he(i);
+			let i = this.manager, a = this.fetchOptions, o = i.getHandler("path.gltf") || new ge(i);
 			a.credentials === "include" && a.mode === "cors" && o.setCrossOrigin("use-credentials"), "credentials" in a && o.setWithCredentials(a.credentials === "include"), a.headers && o.setRequestHeader(a.headers);
 			let s = this.workingPath;
 			!/[\\/]$/.test(s) && s.length && (s += "/");
@@ -24,7 +24,7 @@ var _e = class extends i {
 };
 //#endregion
 //#region src/three/renderer/loaders/rgb565torgb.js
-function ve(e) {
+function rgb565torgb(e) {
 	let t = e >> 11, n = e >> 5 & 63, r = e & 31;
 	return [
 		Math.round(t / 31 * 255),
@@ -34,30 +34,30 @@ function ve(e) {
 }
 //#endregion
 //#region src/three/renderer/loaders/decodeOctNormal.js
-var ye = /* @__PURE__ */ new w();
-function be(e, t, n = new T()) {
-	ye.set(e, t).divideScalar(256).multiplyScalar(2).subScalar(1), n.set(ye.x, ye.y, 1 - Math.abs(ye.x) - Math.abs(ye.y));
+var ve = /* @__PURE__ */ new w();
+function decodeOctNormal(e, t, n = new T()) {
+	ve.set(e, t).divideScalar(256).multiplyScalar(2).subScalar(1), n.set(ve.x, ve.y, 1 - Math.abs(ve.x) - Math.abs(ve.y));
 	let r = x.clamp(-n.z, 0, 1);
 	return n.x >= 0 ? n.setX(n.x - r) : n.setX(n.x + r), n.y >= 0 ? n.setY(n.y - r) : n.setY(n.y + r), n.normalize(), n;
 }
 //#endregion
 //#region src/three/renderer/loaders/PNTSLoader.js
-var xe = {
+var ye = {
 	RGB: "color",
 	POSITION: "position"
-}, Se = class extends s {
-	constructor(e = h) {
+}, PNTSLoader = class extends r {
+	constructor(e = g) {
 		super(), this.manager = e;
 	}
 	parse(e) {
 		return super.parse(e).then(async (e) => {
-			let { featureTable: t, batchTable: n } = e, r = new ce(), i = t.header.extensions, a = new T(), o;
+			let { featureTable: t, batchTable: n } = e, r = new le(), i = t.header.extensions, a = new T(), o;
 			if (i && i["3DTILES_draco_point_compression"]) {
 				let { byteOffset: e, byteLength: n, properties: a } = i["3DTILES_draco_point_compression"], s = this.manager.getHandler("draco.drc");
 				if (s == null) throw Error("PNTSLoader: dracoLoader not available.");
 				let c = {};
-				for (let e in a) if (e in xe && e in a) {
-					let t = xe[e];
+				for (let e in a) if (e in ye && e in a) {
+					let t = ye[e];
 					c[t] = a[e];
 				}
 				let l = {
@@ -70,93 +70,93 @@ var xe = {
 				}, u = t.getBuffer(e, n);
 				o = await s.decodeGeometry(u, l), o.attributes.color && (r.vertexColors = !0);
 			} else {
-				let e = t.getData("POINTS_LENGTH"), n = t.getData("POSITION", e, "FLOAT", "VEC3"), i = t.getData("NORMAL", e, "FLOAT", "VEC3"), s = t.getData("NORMAL", e, "UNSIGNED_BYTE", "VEC2"), c = t.getData("RGB", e, "UNSIGNED_BYTE", "VEC3"), l = t.getData("RGBA", e, "UNSIGNED_BYTE", "VEC4"), u = t.getData("RGB565", e, "UNSIGNED_SHORT", "SCALAR"), p = t.getData("CONSTANT_RGBA", e, "UNSIGNED_BYTE", "VEC4"), h = t.getData("POSITION_QUANTIZED", e, "UNSIGNED_SHORT", "VEC3"), g = t.getData("QUANTIZED_VOLUME_SCALE", e, "FLOAT", "VEC3"), _ = t.getData("QUANTIZED_VOLUME_OFFSET", e, "FLOAT", "VEC3");
-				if (o = new f(), h) {
+				let e = t.getData("POINTS_LENGTH"), n = t.getData("POSITION", e, "FLOAT", "VEC3"), i = t.getData("NORMAL", e, "FLOAT", "VEC3"), s = t.getData("NORMAL", e, "UNSIGNED_BYTE", "VEC2"), c = t.getData("RGB", e, "UNSIGNED_BYTE", "VEC3"), l = t.getData("RGBA", e, "UNSIGNED_BYTE", "VEC4"), u = t.getData("RGB565", e, "UNSIGNED_SHORT", "SCALAR"), d = t.getData("CONSTANT_RGBA", e, "UNSIGNED_BYTE", "VEC4"), m = t.getData("POSITION_QUANTIZED", e, "UNSIGNED_SHORT", "VEC3"), g = t.getData("QUANTIZED_VOLUME_SCALE", e, "FLOAT", "VEC3"), _ = t.getData("QUANTIZED_VOLUME_OFFSET", e, "FLOAT", "VEC3");
+				if (o = new p(), m) {
 					let t = new Float32Array(e * 3);
 					for (let n = 0; n < e; n++) for (let e = 0; e < 3; e++) {
 						let r = 3 * n + e;
-						t[r] = h[r] / 65535 * g[e];
+						t[r] = m[r] / 65535 * g[e];
 					}
-					a.x = _[0], a.y = _[1], a.z = _[2], o.setAttribute("position", new d(t, 3, !1));
-				} else o.setAttribute("position", new d(n, 3, !1));
-				if (i !== null) o.setAttribute("normal", new d(i, 3, !1));
+					a.x = _[0], a.y = _[1], a.z = _[2], o.setAttribute("position", new f(t, 3, !1));
+				} else o.setAttribute("position", new f(n, 3, !1));
+				if (i !== null) o.setAttribute("normal", new f(i, 3, !1));
 				else if (s !== null) {
 					let t = new Float32Array(e * 3), n = new T();
 					for (let r = 0; r < e; r++) {
-						let e = s[r * 2], i = s[r * 2 + 1], a = be(e, i, n);
+						let e = s[r * 2], i = s[r * 2 + 1], a = decodeOctNormal(e, i, n);
 						t[r * 3] = a.x, t[r * 3 + 1] = a.y, t[r * 3 + 2] = a.z;
 					}
-					o.setAttribute("normal", new d(t, 3, !1));
+					o.setAttribute("normal", new f(t, 3, !1));
 				}
-				if (l !== null) o.setAttribute("color", new d(l, 4, !0)), r.vertexColors = !0, r.transparent = !0, r.depthWrite = !1;
-				else if (c !== null) o.setAttribute("color", new d(c, 3, !0)), r.vertexColors = !0;
+				if (l !== null) o.setAttribute("color", new f(l, 4, !0)), r.vertexColors = !0, r.transparent = !0, r.depthWrite = !1;
+				else if (c !== null) o.setAttribute("color", new f(c, 3, !0)), r.vertexColors = !0;
 				else if (u !== null) {
 					let t = new Uint8Array(e * 3);
 					for (let n = 0; n < e; n++) {
-						let e = ve(u[n]);
+						let e = rgb565torgb(u[n]);
 						for (let r = 0; r < 3; r++) {
 							let i = 3 * n + r;
 							t[i] = e[r];
 						}
 					}
-					o.setAttribute("color", new d(t, 3, !0)), r.vertexColors = !0;
-				} else if (p !== null) {
-					r.color = new m(p[0], p[1], p[2]);
-					let e = p[3] / 255;
+					o.setAttribute("color", new f(t, 3, !0)), r.vertexColors = !0;
+				} else if (d !== null) {
+					r.color = new h(d[0], d[1], d[2]);
+					let e = d[3] / 255;
 					e < 1 && (r.opacity = e, r.transparent = !0, r.depthWrite = !1);
 				}
 			}
-			let s = new se(o, r);
+			let s = new ce(o, r);
 			s.position.copy(a), e.scene = s, e.scene.featureTable = t, e.scene.batchTable = n;
 			let c = t.getData("RTC_CENTER", 1, "FLOAT", "VEC3");
 			return c && (e.scene.position.x += c[0], e.scene.position.y += c[1], e.scene.position.z += c[2]), e;
 		});
 	}
-}, Ce = /* @__PURE__ */ a({
-	latitudeToSphericalPhi: () => Ae,
-	sphericalPhiToLatitude: () => ke,
-	swapToGeoFrame: () => De,
-	swapToThreeFrame: () => Oe,
-	toLatLonString: () => Ne
-}), we = /* @__PURE__ */ new pe(), Te = /* @__PURE__ */ new T(), Ee = {};
-function De(e) {
+}, be = /* @__PURE__ */ s({
+	latitudeToSphericalPhi: () => latitudeToSphericalPhi,
+	sphericalPhiToLatitude: () => sphericalPhiToLatitude,
+	swapToGeoFrame: () => swapToGeoFrame,
+	swapToThreeFrame: () => swapToThreeFrame,
+	toLatLonString: () => toLatLonString
+}), xe = /* @__PURE__ */ new me(), Se = /* @__PURE__ */ new T(), Ce = {};
+function swapToGeoFrame(e) {
 	let { x: t, y: n, z: r } = e;
 	e.x = r, e.y = t, e.z = n;
 }
-function Oe(e) {
+function swapToThreeFrame(e) {
 	let { x: t, y: n, z: r } = e;
 	e.z = t, e.x = n, e.y = r;
 }
-function ke(e) {
+function sphericalPhiToLatitude(e) {
 	return -(e - Math.PI / 2);
 }
-function Ae(e) {
+function latitudeToSphericalPhi(e) {
 	return -e + Math.PI / 2;
 }
-function je(e, t, n = {}) {
-	return we.theta = t, we.phi = Ae(e), Te.setFromSpherical(we), we.setFromVector3(Te), n.lat = ke(we.phi), n.lon = we.theta, n;
+function correctGeoCoordWrap(e, t, n = {}) {
+	return xe.theta = t, xe.phi = latitudeToSphericalPhi(e), Se.setFromSpherical(xe), xe.setFromVector3(Se), n.lat = sphericalPhiToLatitude(xe.phi), n.lon = xe.theta, n;
 }
-function Me(e, t = "E", n = "W") {
+function toHoursMinutesSecondsString(e, t = "E", n = "W") {
 	let r = e < 0 ? n : t;
 	e = Math.abs(e);
 	let i = ~~e, a = (e - i) * 60, o = ~~a;
 	return `${i}° ${o}' ${~~((a - o) * 60)}" ${r}`;
 }
-function Ne(e, t, n = !1) {
-	let r = je(e, t, Ee), i, a;
-	return n ? (i = `${(x.RAD2DEG * r.lat).toFixed(4)}°`, a = `${(x.RAD2DEG * r.lon).toFixed(4)}°`) : (i = Me(x.RAD2DEG * r.lat, "N", "S"), a = Me(x.RAD2DEG * r.lon, "E", "W")), `${i} ${a}`;
+function toLatLonString(e, t, n = !1) {
+	let r = correctGeoCoordWrap(e, t, Ce), i, a;
+	return n ? (i = `${(x.RAD2DEG * r.lat).toFixed(4)}°`, a = `${(x.RAD2DEG * r.lon).toFixed(4)}°`) : (i = toHoursMinutesSecondsString(x.RAD2DEG * r.lat, "N", "S"), a = toHoursMinutesSecondsString(x.RAD2DEG * r.lon, "E", "W")), `${i} ${a}`;
 }
 //#endregion
 //#region src/three/renderer/math/Ellipsoid.js
-var Pe = /* @__PURE__ */ new pe(), E = /* @__PURE__ */ new T(), D = /* @__PURE__ */ new T(), Fe = /* @__PURE__ */ new T(), O = /* @__PURE__ */ new S(), k = /* @__PURE__ */ new S(), Ie = /* @__PURE__ */ new fe(), A = /* @__PURE__ */ new g(), Le = /* @__PURE__ */ new T(), Re = /* @__PURE__ */ new T(), ze = /* @__PURE__ */ new T(), Be = /* @__PURE__ */ new T(), Ve = /* @__PURE__ */ new le(), He = 1e-12, Ue = .1, We = 0, Ge = 1, Ke = 2, qe = class {
+var we = /* @__PURE__ */ new me(), E = /* @__PURE__ */ new T(), D = /* @__PURE__ */ new T(), Te = /* @__PURE__ */ new T(), O = /* @__PURE__ */ new S(), k = /* @__PURE__ */ new S(), Ee = /* @__PURE__ */ new pe(), A = /* @__PURE__ */ new _(), De = /* @__PURE__ */ new T(), Oe = /* @__PURE__ */ new T(), ke = /* @__PURE__ */ new T(), Ae = /* @__PURE__ */ new T(), je = /* @__PURE__ */ new ue(), Me = 1e-12, Ne = .1, Pe = 0, Fe = 1, Ie = 2, Ellipsoid = class {
 	constructor(e = 1, t = 1, n = 1) {
 		this.name = "", this.radius = new T(e, t, n);
 	}
 	intersectRay(e, t) {
-		return O.makeScale(...this.radius).invert(), Ie.center.set(0, 0, 0), Ie.radius = 1, Ve.copy(e).applyMatrix4(O), Ve.intersectSphere(Ie, t) ? (O.makeScale(...this.radius), t.applyMatrix4(O), t) : null;
+		return O.makeScale(...this.radius).invert(), Ee.center.set(0, 0, 0), Ee.radius = 1, je.copy(e).applyMatrix4(O), je.intersectSphere(Ee, t) ? (O.makeScale(...this.radius), t.applyMatrix4(O), t) : null;
 	}
 	getEastNorthUpFrame(e, t, n, r) {
-		return n.isMatrix4 && (r = n, n = 0, console.warn("Ellipsoid: The signature for \"getEastNorthUpFrame\" has changed.")), this.getEastNorthUpAxes(e, t, Le, Re, ze), this.getCartographicToPosition(e, t, n, Be), r.makeBasis(Le, Re, ze).setPosition(Be);
+		return n.isMatrix4 && (r = n, n = 0, console.warn("Ellipsoid: The signature for \"getEastNorthUpFrame\" has changed.")), this.getEastNorthUpAxes(e, t, De, Oe, ke), this.getCartographicToPosition(e, t, n, Ae), r.makeBasis(De, Oe, ke).setPosition(Ae);
 	}
 	getOrientedEastNorthUpFrame(e, t, n, r, i, a, o) {
 		return this.getObjectFrame(e, t, n, r, i, a, o, 0);
@@ -165,9 +165,9 @@ var Pe = /* @__PURE__ */ new pe(), E = /* @__PURE__ */ new T(), D = /* @__PURE__
 		return this.getEastNorthUpFrame(e, t, n, O), A.set(i, a, -r, "ZXY"), o.makeRotationFromEuler(A).premultiply(O), s === 1 ? (A.set(Math.PI / 2, 0, 0, "XYZ"), k.makeRotationFromEuler(A), o.multiply(k)) : s === 2 && (A.set(-Math.PI / 2, 0, Math.PI, "XYZ"), k.makeRotationFromEuler(A), o.multiply(k)), o;
 	}
 	getCartographicFromObjectFrame(e, t, n = 2) {
-		return n === 1 ? (A.set(-Math.PI / 2, 0, 0, "XYZ"), k.makeRotationFromEuler(A).premultiply(e)) : n === 2 ? (A.set(-Math.PI / 2, 0, Math.PI, "XYZ"), k.makeRotationFromEuler(A).premultiply(e)) : k.copy(e), Be.setFromMatrixPosition(k), this.getPositionToCartographic(Be, t), this.getEastNorthUpFrame(t.lat, t.lon, 0, O).invert(), k.premultiply(O), A.setFromRotationMatrix(k, "ZXY"), t.azimuth = -A.z, t.elevation = A.x, t.roll = A.y, t;
+		return n === 1 ? (A.set(-Math.PI / 2, 0, 0, "XYZ"), k.makeRotationFromEuler(A).premultiply(e)) : n === 2 ? (A.set(-Math.PI / 2, 0, Math.PI, "XYZ"), k.makeRotationFromEuler(A).premultiply(e)) : k.copy(e), Ae.setFromMatrixPosition(k), this.getPositionToCartographic(Ae, t), this.getEastNorthUpFrame(t.lat, t.lon, 0, O).invert(), k.premultiply(O), A.setFromRotationMatrix(k, "ZXY"), t.azimuth = -A.z, t.elevation = A.x, t.roll = A.y, t;
 	}
-	getEastNorthUpAxes(e, t, n, r, i, a = Be) {
+	getEastNorthUpAxes(e, t, n, r, i, a = Ae) {
 		this.getCartographicToPosition(e, t, 0, a), this.getCartographicToNormal(e, t, i), n.set(-a.y, a.x, 0).normalize(), r.crossVectors(i, n).normalize();
 	}
 	getCartographicToPosition(e, t, n, r) {
@@ -179,11 +179,11 @@ var Pe = /* @__PURE__ */ new pe(), E = /* @__PURE__ */ new T(), D = /* @__PURE__
 	}
 	getPositionToCartographic(e, t) {
 		this.getPositionToSurfacePoint(e, D), this.getPositionToNormal(D, E);
-		let n = Fe.subVectors(e, D);
+		let n = Te.subVectors(e, D);
 		return t.lon = Math.atan2(E.y, E.x), t.lat = Math.asin(E.z), t.height = Math.sign(n.dot(e)) * n.length(), t;
 	}
 	getCartographicToNormal(e, t, n) {
-		return Pe.set(1, Ae(e), t), n.setFromSpherical(Pe).normalize(), De(n), n;
+		return we.set(1, latitudeToSphericalPhi(e), t), n.setFromSpherical(we).normalize(), swapToGeoFrame(n), n;
 	}
 	getPositionToNormal(e, t) {
 		let n = this.radius;
@@ -191,13 +191,13 @@ var Pe = /* @__PURE__ */ new pe(), E = /* @__PURE__ */ new T(), D = /* @__PURE__
 	}
 	getPositionToSurfacePoint(e, t) {
 		let n = this.radius, r = 1 / n.x ** 2, i = 1 / n.y ** 2, a = 1 / n.z ** 2, o = e.x * e.x * r, s = e.y * e.y * i, c = e.z * e.z * a, l = o + s + c, u = Math.sqrt(1 / l), d = D.copy(e).multiplyScalar(u);
-		if (l < Ue) return isFinite(u) ? t.copy(d) : null;
-		let f = Fe.set(d.x * r * 2, d.y * i * 2, d.z * a * 2), p = (1 - u) * e.length() / (.5 * f.length()), m = 0, h, g, _, v, y, ee, b, x, te, S, ne;
+		if (l < Ne) return isFinite(u) ? t.copy(d) : null;
+		let f = Te.set(d.x * r * 2, d.y * i * 2, d.z * a * 2), p = (1 - u) * e.length() / (.5 * f.length()), m = 0, h, g, _, v, y, b, ee, te, x, ne, S;
 		do {
-			p -= m, _ = 1 / (1 + p * r), v = 1 / (1 + p * i), y = 1 / (1 + p * a), ee = _ * _, b = v * v, x = y * y, te = ee * _, S = b * v, ne = x * y, h = o * ee + s * b + c * x - 1, g = o * te * r + s * S * i + c * ne * a;
+			p -= m, _ = 1 / (1 + p * r), v = 1 / (1 + p * i), y = 1 / (1 + p * a), b = _ * _, ee = v * v, te = y * y, x = b * _, ne = ee * v, S = te * y, h = o * b + s * ee + c * te - 1, g = o * x * r + s * ne * i + c * S * a;
 			let e = -2 * g;
 			m = h / e;
-		} while (Math.abs(h) > He);
+		} while (Math.abs(h) > Me);
 		return t.set(e.x * _, e.y * v, e.z * y);
 	}
 	calculateHorizonDistance(e, t) {
@@ -210,11 +210,11 @@ var Pe = /* @__PURE__ */ new pe(), E = /* @__PURE__ */ new T(), D = /* @__PURE__
 	}
 	getPositionElevation(e) {
 		this.getPositionToSurfacePoint(e, D);
-		let t = Fe.subVectors(e, D);
+		let t = Te.subVectors(e, D);
 		return Math.sign(t.dot(e)) * t.length();
 	}
 	closestPointToRayEstimate(e, t) {
-		return this.intersectRay(e, t) ? t : (O.makeScale(...this.radius).invert(), Ve.copy(e).applyMatrix4(O), D.set(0, 0, 0), Ve.closestPointToPoint(D, t).normalize(), O.makeScale(...this.radius), t.applyMatrix4(O));
+		return this.intersectRay(e, t) ? t : (O.makeScale(...this.radius).invert(), je.copy(e).applyMatrix4(O), D.set(0, 0, 0), je.closestPointToPoint(D, t).normalize(), O.makeScale(...this.radius), t.applyMatrix4(O));
 	}
 	copy(e) {
 		return this.radius.copy(e.radius), this;
@@ -222,21 +222,21 @@ var Pe = /* @__PURE__ */ new pe(), E = /* @__PURE__ */ new T(), D = /* @__PURE__
 	clone() {
 		return new this.constructor().copy(this);
 	}
-}, Je = new qe(e, e, t);
-Je.name = "WGS84 Earth";
+}, Le = new Ellipsoid(o, o, a);
+Le.name = "WGS84 Earth";
 //#endregion
 //#region src/three/renderer/loaders/I3DMLoader.js
-var Ye = /* @__PURE__ */ new T(), Xe = /* @__PURE__ */ new T(), Ze = /* @__PURE__ */ new T(), Qe = /* @__PURE__ */ new T(), $e = /* @__PURE__ */ new C(), et = /* @__PURE__ */ new T(), tt = /* @__PURE__ */ new S(), nt = /* @__PURE__ */ new S(), rt = /* @__PURE__ */ new T(), it = /* @__PURE__ */ new S(), at = /* @__PURE__ */ new C(), ot = {};
-function st(e, t, n, r) {
+var Re = /* @__PURE__ */ new T(), ze = /* @__PURE__ */ new T(), Be = /* @__PURE__ */ new T(), Ve = /* @__PURE__ */ new T(), He = /* @__PURE__ */ new C(), Ue = /* @__PURE__ */ new T(), We = /* @__PURE__ */ new S(), Ge = /* @__PURE__ */ new S(), Ke = /* @__PURE__ */ new T(), qe = /* @__PURE__ */ new S(), Je = /* @__PURE__ */ new C(), Ye = {};
+function octDecodeInRange(e, t, n, r) {
 	if (e = e / n * 2 - 1, t = t / n * 2 - 1, r.x = e, r.y = t, r.z = 1 - Math.abs(e) - Math.abs(t), r.z < 0) {
 		let e = r.x;
 		r.x = (1 - Math.abs(r.y)) * (e >= 0 ? 1 : -1), r.y = (1 - Math.abs(e)) * (r.y >= 0 ? 1 : -1);
 	}
 	return r.normalize(), r;
 }
-var ct = class extends c {
-	constructor(e = h) {
-		super(), this.manager = e, this.adjustmentTransform = new S(), this.ellipsoid = Je.clone();
+var I3DMLoader = class extends n {
+	constructor(e = g) {
+		super(), this.manager = e, this.adjustmentTransform = new S(), this.ellipsoid = Le.clone();
 	}
 	resolveExternalURL(e) {
 		return this.manager.resolveURL(super.resolveExternalURL(e));
@@ -245,7 +245,7 @@ var ct = class extends c {
 		return super.parse(e).then((e) => {
 			let { featureTable: t, batchTable: n } = e, r = e.glbBytes.slice().buffer;
 			return new Promise((i, a) => {
-				let o = this.fetchOptions, s = this.manager, c = s.getHandler("path.gltf") || new he(s);
+				let o = this.fetchOptions, s = this.manager, c = s.getHandler("path.gltf") || new ge(s);
 				o.credentials === "include" && o.mode === "cors" && c.setCrossOrigin("use-credentials"), "credentials" in o && c.setWithCredentials(o.credentials === "include"), o.headers && c.setRequestHeader(o.headers);
 				let l = e.gltfWorkingPath ?? this.workingPath;
 				/[\\/]$/.test(l) || (l += "/");
@@ -267,12 +267,12 @@ var ct = class extends c {
 						}
 					});
 					for (let e = 0; e < r; e++) {
-						Qe.set(a[e * 3 + 0] - v.x, a[e * 3 + 1] - v.y, a[e * 3 + 2] - v.z), $e.identity(), l && d ? (Xe.set(l[e * 3 + 0], l[e * 3 + 1], l[e * 3 + 2]), Ze.set(d[e * 3 + 0], d[e * 3 + 1], d[e * 3 + 2]), Ye.crossVectors(Ze, Xe).normalize(), tt.makeBasis(Ze, Xe, Ye), $e.setFromRotationMatrix(tt)) : f && p && (st(f[e * 2 + 0], f[e * 2 + 1], 65535, Xe), st(p[e * 2 + 0], p[e * 2 + 1], 65535, Ze), Ye.crossVectors(Ze, Xe).normalize(), tt.makeBasis(Ze, Xe, Ye), $e.setFromRotationMatrix(tt)), et.set(1, 1, 1), m && et.set(m[e * 3 + 0], m[e * 3 + 1], m[e * 3 + 2]), h && et.multiplyScalar(h[e]);
+						Ve.set(a[e * 3 + 0] - v.x, a[e * 3 + 1] - v.y, a[e * 3 + 2] - v.z), He.identity(), l && d ? (ze.set(l[e * 3 + 0], l[e * 3 + 1], l[e * 3 + 2]), Be.set(d[e * 3 + 0], d[e * 3 + 1], d[e * 3 + 2]), Re.crossVectors(Be, ze).normalize(), We.makeBasis(Be, ze, Re), He.setFromRotationMatrix(We)) : f && p && (octDecodeInRange(f[e * 2 + 0], f[e * 2 + 1], 65535, ze), octDecodeInRange(p[e * 2 + 0], p[e * 2 + 1], 65535, Be), Re.crossVectors(Be, ze).normalize(), We.makeBasis(Be, ze, Re), He.setFromRotationMatrix(We)), Ue.set(1, 1, 1), m && Ue.set(m[e * 3 + 0], m[e * 3 + 1], m[e * 3 + 2]), h && Ue.multiplyScalar(h[e]);
 						for (let t = 0, n = y.length; t < n; t++) {
 							let n = y[t];
-							at.copy($e), _ && (n.updateMatrixWorld(), rt.copy(Qe).applyMatrix4(n.matrixWorld), this.ellipsoid.getPositionToCartographic(rt, ot), this.ellipsoid.getEastNorthUpFrame(ot.lat, ot.lon, it), at.setFromRotationMatrix(it)), tt.compose(Qe, at, et).multiply(u);
+							Je.copy(He), _ && (n.updateMatrixWorld(), Ke.copy(Ve).applyMatrix4(n.matrixWorld), this.ellipsoid.getPositionToCartographic(Ke, Ye), this.ellipsoid.getEastNorthUpFrame(Ye.lat, Ye.lon, qe), Je.setFromRotationMatrix(qe)), We.compose(Ve, Je, Ue).multiply(u);
 							let r = b[t];
-							nt.multiplyMatrices(tt, r.matrixWorld), n.setMatrixAt(e, nt);
+							Ge.multiplyMatrices(We, r.matrixWorld), n.setMatrixAt(e, Ge);
 						}
 					}
 					e.scene.clear(), e.scene.add(...y), e.batchTable = n, e.featureTable = t, e.scene.batchTable = n, e.scene.featureTable = t, i(e);
@@ -280,9 +280,9 @@ var ct = class extends c {
 			});
 		});
 	}
-}, lt = class extends l {
-	constructor(e = h) {
-		super(), this.manager = e, this.adjustmentTransform = new S(), this.ellipsoid = Je.clone();
+}, CMPTLoader = class extends t {
+	constructor(e = g) {
+		super(), this.manager = e, this.adjustmentTransform = new S(), this.ellipsoid = Le.clone();
 	}
 	parse(e) {
 		let t = super.parse(e), { manager: n, ellipsoid: r, adjustmentTransform: i } = this, a = [];
@@ -290,21 +290,21 @@ var ct = class extends c {
 			let { type: o, buffer: s } = t.tiles[e];
 			switch (o) {
 				case "b3dm": {
-					let e = s.slice(), t = new _e(n);
+					let e = s.slice(), t = new B3DMLoader(n);
 					t.workingPath = this.workingPath, t.fetchOptions = this.fetchOptions, t.adjustmentTransform.copy(i);
 					let r = t.parse(e.buffer);
 					a.push(r);
 					break;
 				}
 				case "pnts": {
-					let e = s.slice(), t = new Se(n);
+					let e = s.slice(), t = new PNTSLoader(n);
 					t.workingPath = this.workingPath, t.fetchOptions = this.fetchOptions;
 					let r = t.parse(e.buffer);
 					a.push(r);
 					break;
 				}
 				case "i3dm": {
-					let e = s.slice(), t = new ct(n);
+					let e = s.slice(), t = new I3DMLoader(n);
 					t.workingPath = this.workingPath, t.fetchOptions = this.fetchOptions, t.ellipsoid.copy(r), t.adjustmentTransform.copy(i);
 					let o = t.parse(e.buffer);
 					a.push(o);
@@ -313,7 +313,7 @@ var ct = class extends c {
 			}
 		}
 		return Promise.all(a).then((e) => {
-			let t = new y();
+			let t = new b();
 			return e.forEach((e) => {
 				t.add(e.scene);
 			}), {
@@ -322,7 +322,7 @@ var ct = class extends c {
 			};
 		});
 	}
-}, ut = /* @__PURE__ */ new S(), dt = class extends y {
+}, Xe = /* @__PURE__ */ new S(), TilesGroup = class extends b {
 	constructor(e) {
 		super(), this.isTilesGroup = !0, this.name = "TilesRenderer.TilesGroup", this.tilesRenderer = e, this.matrixWorldInverse = new S();
 	}
@@ -331,8 +331,8 @@ var ct = class extends c {
 	}
 	updateMatrixWorld(e) {
 		if (this.matrixAutoUpdate && this.updateMatrix(), this.matrixWorldNeedsUpdate || e) {
-			this.parent === null ? ut.copy(this.matrix) : ut.multiplyMatrices(this.parent.matrixWorld, this.matrix), this.matrixWorldNeedsUpdate = !1;
-			let e = ut.elements, t = this.matrixWorld.elements, n = !1;
+			this.parent === null ? Xe.copy(this.matrix) : Xe.multiplyMatrices(this.parent.matrixWorld, this.matrix), this.matrixWorldNeedsUpdate = !1;
+			let e = Xe.elements, t = this.matrixWorld.elements, n = !1;
 			for (let r = 0; r < 16; r++) {
 				let i = e[r], a = t[r];
 				if (Math.abs(i - a) > 2 ** -52) {
@@ -341,7 +341,7 @@ var ct = class extends c {
 				}
 			}
 			if (n) {
-				this.matrixWorld.copy(ut), this.matrixWorldInverse.copy(ut).invert();
+				this.matrixWorld.copy(Xe), this.matrixWorldInverse.copy(Xe).invert();
 				let e = this.children;
 				for (let t = 0, n = e.length; t < n; t++) e[t].updateMatrixWorld();
 				let { tilesRenderer: t } = this, { activeTiles: n, visibleTiles: r } = t;
@@ -359,26 +359,26 @@ var ct = class extends c {
 	updateWorldMatrix(e, t) {
 		this.parent && e && this.parent.updateWorldMatrix(e, !1), this.updateMatrixWorld(!0);
 	}
-}, ft = /* @__PURE__ */ new le();
-function pt(e, t, n, r) {
+}, Ze = /* @__PURE__ */ new ue();
+function intersectTileScene(e, t, n, r) {
 	let { scene: i } = e.engineData;
 	n.invokeOnePlugin((n) => n.raycastTile && n.raycastTile(e, i, t, r)) || t.intersectObject(i, !0, r);
 }
-function mt(e) {
+function isTileInitialized(e) {
 	return "traversal" in e;
 }
-function ht(e, t, n, r, i = null) {
-	if (!mt(t)) return;
+function raycastTraverse(e, t, n, r, i = null) {
+	if (!isTileInitialized(t)) return;
 	let { group: a, activeTiles: o } = e, { boundingVolume: s } = t.engineData;
-	if (i === null && (i = ft, i.copy(n.ray).applyMatrix4(a.matrixWorldInverse)), !t.traversal.used || !s.intersectsRay(i)) return;
-	o.has(t) && pt(t, n, e, r);
+	if (i === null && (i = Ze, i.copy(n.ray).applyMatrix4(a.matrixWorldInverse)), !t.traversal.used || !s.intersectsRay(i)) return;
+	o.has(t) && intersectTileScene(t, n, e, r);
 	let c = t.children;
-	for (let t = 0, a = c.length; t < a; t++) ht(e, c[t], n, r, i);
+	for (let t = 0, a = c.length; t < a; t++) raycastTraverse(e, c[t], n, r, i);
 }
 //#endregion
 //#region src/three/renderer/math/OBB.js
-var gt = /* @__PURE__ */ new T(), _t = /* @__PURE__ */ new T(), j = /* @__PURE__ */ new T(), vt = /* @__PURE__ */ new le(), yt = class {
-	constructor(e = new u(), t = new S()) {
+var Qe = /* @__PURE__ */ new T(), $e = /* @__PURE__ */ new T(), j = /* @__PURE__ */ new T(), et = /* @__PURE__ */ new ue(), OBB = class {
+	constructor(e = new d(), t = new S()) {
 		this.box = e.clone(), this.transform = t.clone(), this.inverseTransform = new S(), this.points = Array(8).fill().map(() => new T()), this.planes = [
 			,
 			,
@@ -386,7 +386,7 @@ var gt = /* @__PURE__ */ new T(), _t = /* @__PURE__ */ new T(), j = /* @__PURE__
 			,
 			,
 			,
-		].fill().map(() => new ae());
+		].fill().map(() => new oe());
 	}
 	copy(e) {
 		return this.box.copy(e.box), this.transform.copy(e.transform), this.update(), this;
@@ -404,10 +404,10 @@ var gt = /* @__PURE__ */ new T(), _t = /* @__PURE__ */ new T(), j = /* @__PURE__
 		return j.copy(e).applyMatrix4(this.inverseTransform), this.box.containsPoint(j);
 	}
 	intersectsRay(e) {
-		return vt.copy(e).applyMatrix4(this.inverseTransform), vt.intersectsBox(this.box);
+		return et.copy(e).applyMatrix4(this.inverseTransform), et.intersectsBox(this.box);
 	}
 	intersectRay(e, t) {
-		return vt.copy(e).applyMatrix4(this.inverseTransform), vt.intersectBox(this.box, t) ? (t.applyMatrix4(this.transform), t) : null;
+		return et.copy(e).applyMatrix4(this.inverseTransform), et.intersectBox(this.box, t) ? (t.applyMatrix4(this.transform), t) : null;
 	}
 	update() {
 		let { points: e, inverseTransform: t, transform: n, box: r } = this;
@@ -417,7 +417,7 @@ var gt = /* @__PURE__ */ new T(), _t = /* @__PURE__ */ new T(), j = /* @__PURE__
 		this.updatePlanes();
 	}
 	updatePlanes() {
-		gt.copy(this.box.min).applyMatrix4(this.transform), _t.copy(this.box.max).applyMatrix4(this.transform), j.set(0, 0, 1).transformDirection(this.transform), this.planes[0].setFromNormalAndCoplanarPoint(j, gt), this.planes[1].setFromNormalAndCoplanarPoint(j, _t).negate(), j.set(0, 1, 0).transformDirection(this.transform), this.planes[2].setFromNormalAndCoplanarPoint(j, gt), this.planes[3].setFromNormalAndCoplanarPoint(j, _t).negate(), j.set(1, 0, 0).transformDirection(this.transform), this.planes[4].setFromNormalAndCoplanarPoint(j, gt), this.planes[5].setFromNormalAndCoplanarPoint(j, _t).negate();
+		Qe.copy(this.box.min).applyMatrix4(this.transform), $e.copy(this.box.max).applyMatrix4(this.transform), j.set(0, 0, 1).transformDirection(this.transform), this.planes[0].setFromNormalAndCoplanarPoint(j, Qe), this.planes[1].setFromNormalAndCoplanarPoint(j, $e).negate(), j.set(0, 1, 0).transformDirection(this.transform), this.planes[2].setFromNormalAndCoplanarPoint(j, Qe), this.planes[3].setFromNormalAndCoplanarPoint(j, $e).negate(), j.set(1, 0, 0).transformDirection(this.transform), this.planes[4].setFromNormalAndCoplanarPoint(j, Qe), this.planes[5].setFromNormalAndCoplanarPoint(j, $e).negate();
 	}
 	intersectsSphere(e) {
 		return this.clampPoint(e.center, j), j.distanceToSquared(e.center) <= e.radius * e.radius;
@@ -448,30 +448,30 @@ var gt = /* @__PURE__ */ new T(), _t = /* @__PURE__ */ new T(), j = /* @__PURE__
 		}
 		return !0;
 	}
-}, bt = Math.PI, xt = bt / 2, St = /* @__PURE__*/ new T(), Ct = /* @__PURE__*/ new T(), M = /* @__PURE__*/ new T(), N = /* @__PURE__*/ new T(), P = /* @__PURE__*/ new S(), wt = /* @__PURE__*/ new u(), Tt = /* @__PURE__*/ new S();
-function Et(e, t) {
+}, tt = Math.PI, nt = tt / 2, rt = /* @__PURE__*/ new T(), it = /* @__PURE__*/ new T(), M = /* @__PURE__*/ new T(), N = /* @__PURE__*/ new T(), P = /* @__PURE__*/ new S(), at = /* @__PURE__*/ new d(), ot = /* @__PURE__*/ new S();
+function expandSphereRadiusSquared(e, t) {
 	t.radius = Math.max(t.radius, e.distanceToSquared(t.center));
 }
-function Dt(e) {
+function isTriaxial(e) {
 	return e.x !== e.y;
 }
-var Ot = class extends qe {
-	constructor(e = 1, t = 1, n = 1, r = -xt, i = xt, a = 0, o = 2 * bt, s = 0, c = 0) {
+var EllipsoidRegion = class extends Ellipsoid {
+	constructor(e = 1, t = 1, n = 1, r = -nt, i = nt, a = 0, o = 2 * tt, s = 0, c = 0) {
 		super(e, t, n), this.latStart = r, this.latEnd = i, this.lonStart = a, this.lonEnd = o, this.heightStart = s, this.heightEnd = c;
 	}
 	getBoundingBox(e, t) {
-		Dt(this.radius) && console.warn("EllipsoidRegion: Triaxial ellipsoids are not supported.");
+		isTriaxial(this.radius) && console.warn("EllipsoidRegion: Triaxial ellipsoids are not supported.");
 		let { latStart: n, latEnd: r, lonStart: i, lonEnd: a, heightStart: o, heightEnd: s } = this, c = (n + r) * .5, l = (i + a) * .5, u = n > 0, d = r < 0, f;
 		f = u ? n : d ? r : 0;
 		let { min: p, max: m } = e;
-		p.setScalar(Infinity), m.setScalar(-Infinity), a - i <= bt ? (this.getCartographicToNormal(c, l, M), Ct.set(0, 0, 1), St.crossVectors(Ct, M).normalize(), Ct.crossVectors(M, St).normalize(), t.makeBasis(St, Ct, M), P.copy(t).invert(), this.getCartographicToPosition(f, i, s, N).applyMatrix4(P), m.x = Math.abs(N.x), p.x = -m.x, this.getCartographicToPosition(r, i, s, N).applyMatrix4(P), m.y = N.y, this.getCartographicToPosition(r, l, s, N).applyMatrix4(P), m.y = Math.max(N.y, m.y), this.getCartographicToPosition(n, i, s, N).applyMatrix4(P), p.y = N.y, this.getCartographicToPosition(n, l, s, N).applyMatrix4(P), p.y = Math.min(N.y, p.y), this.getCartographicToPosition(c, l, s, N).applyMatrix4(P), m.z = N.z, this.getCartographicToPosition(n, i, o, N).applyMatrix4(P), p.z = N.z, this.getCartographicToPosition(r, i, o, N).applyMatrix4(P), p.z = Math.min(N.z, p.z)) : (this.getCartographicToPosition(f, l, s, M), M.z = 0, M.length() < 1e-10 ? M.set(1, 0, 0) : M.normalize(), Ct.set(0, 0, 1), St.crossVectors(M, Ct).normalize(), t.makeBasis(St, Ct, M), P.copy(t).invert(), this.getCartographicToPosition(f, l + xt, s, N).applyMatrix4(P), m.x = Math.abs(N.x), p.x = -m.x, this.getCartographicToPosition(r, 0, d ? o : s, N).applyMatrix4(P), m.y = N.y, this.getCartographicToPosition(n, 0, u ? o : s, N).applyMatrix4(P), p.y = N.y, this.getCartographicToPosition(f, l, s, N).applyMatrix4(P), m.z = N.z, this.getCartographicToPosition(f, a, s, N).applyMatrix4(P), p.z = N.z), e.getCenter(N), e.min.sub(N).multiplyScalar(1.0000000000001), e.max.sub(N).multiplyScalar(1.0000000000001), N.applyMatrix4(t), t.setPosition(N);
+		p.setScalar(Infinity), m.setScalar(-Infinity), a - i <= tt ? (this.getCartographicToNormal(c, l, M), it.set(0, 0, 1), rt.crossVectors(it, M).normalize(), it.crossVectors(M, rt).normalize(), t.makeBasis(rt, it, M), P.copy(t).invert(), this.getCartographicToPosition(f, i, s, N).applyMatrix4(P), m.x = Math.abs(N.x), p.x = -m.x, this.getCartographicToPosition(r, i, s, N).applyMatrix4(P), m.y = N.y, this.getCartographicToPosition(r, l, s, N).applyMatrix4(P), m.y = Math.max(N.y, m.y), this.getCartographicToPosition(n, i, s, N).applyMatrix4(P), p.y = N.y, this.getCartographicToPosition(n, l, s, N).applyMatrix4(P), p.y = Math.min(N.y, p.y), this.getCartographicToPosition(c, l, s, N).applyMatrix4(P), m.z = N.z, this.getCartographicToPosition(n, i, o, N).applyMatrix4(P), p.z = N.z, this.getCartographicToPosition(r, i, o, N).applyMatrix4(P), p.z = Math.min(N.z, p.z)) : (this.getCartographicToPosition(f, l, s, M), M.z = 0, M.length() < 1e-10 ? M.set(1, 0, 0) : M.normalize(), it.set(0, 0, 1), rt.crossVectors(M, it).normalize(), t.makeBasis(rt, it, M), P.copy(t).invert(), this.getCartographicToPosition(f, l + nt, s, N).applyMatrix4(P), m.x = Math.abs(N.x), p.x = -m.x, this.getCartographicToPosition(r, 0, d ? o : s, N).applyMatrix4(P), m.y = N.y, this.getCartographicToPosition(n, 0, u ? o : s, N).applyMatrix4(P), p.y = N.y, this.getCartographicToPosition(f, l, s, N).applyMatrix4(P), m.z = N.z, this.getCartographicToPosition(f, a, s, N).applyMatrix4(P), p.z = N.z), e.getCenter(N), e.min.sub(N).multiplyScalar(1.0000000000001), e.max.sub(N).multiplyScalar(1.0000000000001), N.applyMatrix4(t), t.setPosition(N);
 	}
 	getBoundingSphere(e) {
-		Dt(this.radius) && console.warn("EllipsoidRegion: Triaxial ellipsoids are not supported."), this.getBoundingBox(wt, Tt), e.center.setFromMatrixPosition(Tt), e.radius = 0;
+		isTriaxial(this.radius) && console.warn("EllipsoidRegion: Triaxial ellipsoids are not supported."), this.getBoundingBox(at, ot), e.center.setFromMatrixPosition(ot), e.radius = 0;
 		let { latStart: t, latEnd: n, lonStart: r, lonEnd: i, heightStart: a, heightEnd: o } = this, s = (t + n) * .5, c = (r + i) * .5, l = t > 0, u = n < 0, d;
-		d = l ? t : u ? n : 0, this.getCartographicToPosition(d, r, o, N), Et(N, e), this.getCartographicToPosition(n, r, o, N), Et(N, e), this.getCartographicToPosition(n, c, o, N), Et(N, e), this.getCartographicToPosition(t, r, o, N), Et(N, e), this.getCartographicToPosition(t, c, o, N), Et(N, e), this.getCartographicToPosition(s, c, o, N), Et(N, e), this.getCartographicToPosition(t, r, a, N), Et(N, e), i - r > bt && (this.getCartographicToPosition(d, c + bt, o, N), Et(N, e)), e.radius = Math.sqrt(e.radius) * 1.0000000000001;
+		d = l ? t : u ? n : 0, this.getCartographicToPosition(d, r, o, N), expandSphereRadiusSquared(N, e), this.getCartographicToPosition(n, r, o, N), expandSphereRadiusSquared(N, e), this.getCartographicToPosition(n, c, o, N), expandSphereRadiusSquared(N, e), this.getCartographicToPosition(t, r, o, N), expandSphereRadiusSquared(N, e), this.getCartographicToPosition(t, c, o, N), expandSphereRadiusSquared(N, e), this.getCartographicToPosition(s, c, o, N), expandSphereRadiusSquared(N, e), this.getCartographicToPosition(t, r, a, N), expandSphereRadiusSquared(N, e), i - r > tt && (this.getCartographicToPosition(d, c + tt, o, N), expandSphereRadiusSquared(N, e)), e.radius = Math.sqrt(e.radius) * 1.0000000000001;
 	}
-}, F = /* @__PURE__ */ new T(), I = /* @__PURE__ */ new T(), L = /* @__PURE__ */ new T(), kt = /* @__PURE__ */ new T(), At = /* @__PURE__ */ new T(), jt = class {
+}, F = /* @__PURE__ */ new T(), I = /* @__PURE__ */ new T(), L = /* @__PURE__ */ new T(), st = /* @__PURE__ */ new T(), ct = /* @__PURE__ */ new T(), TileBoundingVolume = class {
 	constructor() {
 		this.sphere = null, this.obb = null, this.region = null, this.regionObb = null;
 	}
@@ -481,7 +481,7 @@ var Ot = class extends qe {
 	}
 	intersectRay(e, t = null) {
 		let n = this.sphere, r = this.obb || this.regionObb, i = -Infinity, a = -Infinity;
-		n && e.intersectSphere(n, kt) && (i = n.containsPoint(e.origin) ? 0 : e.origin.distanceToSquared(kt)), r && r.intersectRay(e, At) && (a = r.containsPoint(e.origin) ? 0 : e.origin.distanceToSquared(At));
+		n && e.intersectSphere(n, st) && (i = n.containsPoint(e.origin) ? 0 : e.origin.distanceToSquared(st)), r && r.intersectRay(e, ct) && (a = r.containsPoint(e.origin) ? 0 : e.origin.distanceToSquared(ct));
 		let o = Math.max(i, a);
 		return o === -Infinity ? null : (e.at(Math.sqrt(o), t), t);
 	}
@@ -521,25 +521,25 @@ var Ot = class extends qe {
 		}
 	}
 	setObbData(e, t) {
-		let n = new yt();
+		let n = new OBB();
 		F.set(e[3], e[4], e[5]), I.set(e[6], e[7], e[8]), L.set(e[9], e[10], e[11]);
 		let r = F.length(), i = I.length(), a = L.length();
 		F.normalize(), I.normalize(), L.normalize(), r === 0 && F.crossVectors(I, L), i === 0 && I.crossVectors(F, L), a === 0 && L.crossVectors(F, I), n.transform.set(F.x, I.x, L.x, e[0], F.y, I.y, L.y, e[1], F.z, I.z, L.z, e[2], 0, 0, 0, 1).premultiply(t), n.box.min.set(-r, -i, -a), n.box.max.set(r, i, a), n.update(), this.obb = n;
 	}
 	setSphereData(e, t, n, r, i) {
-		let a = new fe();
+		let a = new pe();
 		a.center.set(e, t, n), a.radius = r, a.applyMatrix4(i), this.sphere = a;
 	}
 	setRegionData(e, t, n, r, i, a, o) {
-		let s = new Ot(...e.radius, n, i, t, r, a, o), c = new yt();
+		let s = new EllipsoidRegion(...e.radius, n, i, t, r, a, o), c = new OBB();
 		s.getBoundingBox(c.box, c.transform), c.update(), this.region = s, this.regionObb = c;
 	}
-}, Mt = /* @__PURE__ */ new te();
-function Nt(e, t, n, r) {
-	let i = Mt.set(e.normal.x, e.normal.y, e.normal.z, t.normal.x, t.normal.y, t.normal.z, n.normal.x, n.normal.y, n.normal.z);
+}, lt = /* @__PURE__ */ new ne();
+function findIntersectionPoint(e, t, n, r) {
+	let i = lt.set(e.normal.x, e.normal.y, e.normal.z, t.normal.x, t.normal.y, t.normal.z, n.normal.x, n.normal.y, n.normal.z);
 	return r.set(-e.constant, -t.constant, -n.constant), r.applyMatrix3(i.invert()), r;
 }
-var Pt = class extends v {
+var ExtendedFrustum = class extends y {
 	constructor() {
 		super(), this.points = Array(8).fill().map(() => new T());
 	}
@@ -590,76 +590,77 @@ var Pt = class extends v {
 				e[5]
 			]
 		].forEach((e, n) => {
-			Nt(e[0], e[1], e[2], t[n]);
+			findIntersectionPoint(e[0], e[1], e[2], t[n]);
 		});
 	}
-}, Ft = /* @__PURE__ */ a({
-	estimateBytesUsed: () => zt,
-	getTextureByteLength: () => Rt
-}), It = 0;
-function Lt(e, t, n, r) {
+}, ut = /* @__PURE__ */ s({
+	estimateBytesUsed: () => estimateBytesUsed$1,
+	getTextureByteLength: () => getTextureByteLength
+}), dt = 0;
+function getFormatByteLength(e, t, n, r) {
 	try {
-		return me.getByteLength(e, t, n, r);
+		return he.getByteLength(e, t, n, r);
 	} catch {
-		return It;
+		return dt;
 	}
 }
-function Rt(e) {
+function getTextureByteLength(e) {
 	if (!e) return 0;
-	if (e.isExternalTexture) return e.userData?.byteLength ?? It;
+	if (e.isExternalTexture) return e.userData?.byteLength ?? dt;
 	let { format: t, type: n, image: r, mipmaps: i } = e;
 	if (e.isCompressedTexture && Array.isArray(i) && i.length > 0) {
 		let e = 0;
-		for (let r of i) r?.data?.byteLength ? e += r.data.byteLength : e += Lt(r.width, r.height, t, n);
+		for (let r of i) r?.data?.byteLength ? e += r.data.byteLength : e += getFormatByteLength(r.width, r.height, t, n);
 		return e;
 	}
-	if (!r) return It;
-	let a = Lt(r.width, r.height, t, n);
+	if (!r) return dt;
+	let a = getFormatByteLength(r.width, r.height, t, n);
 	return a *= e.generateMipmaps ? 4 / 3 : 1, a;
 }
-function zt(e) {
+function estimateBytesUsed$1(e) {
 	let t = /* @__PURE__ */ new Set(), n = 0;
 	return e.traverse((e) => {
-		if (e.geometry && !t.has(e.geometry) && (n += ge(e.geometry), t.add(e.geometry)), e.material) {
+		if (e.geometry && !t.has(e.geometry) && (n += _e(e.geometry), t.add(e.geometry)), e.material) {
 			let r = e.material;
 			for (let e in r) {
 				let i = r[e];
-				i && i.isTexture && !t.has(i) && (n += Rt(i), t.add(i));
+				i && i.isTexture && !t.has(i) && (n += getTextureByteLength(i), t.add(i));
 			}
 		}
 	}), n;
 }
+c(estimateBytesUsed$1, "estimateBytesUsed");
 //#endregion
 //#region src/three/renderer/tiles/TilesRenderer.js
-var Bt = Symbol("INITIAL_FRUSTUM_CULLED"), Vt = /* @__PURE__ */ new S(), Ht = /* @__PURE__ */ new T(), Ut = /* @__PURE__ */ new w(), Wt = /* @__PURE__ */ new T(1, 0, 0), Gt = /* @__PURE__ */ new T(0, 1, 0);
-function Kt(e, t) {
+var ft = Symbol("INITIAL_FRUSTUM_CULLED"), pt = /* @__PURE__ */ new S(), mt = /* @__PURE__ */ new T(), ht = /* @__PURE__ */ new w(), gt = /* @__PURE__ */ new T(1, 0, 0), _t = /* @__PURE__ */ new T(0, 1, 0);
+function updateFrustumCulled(e, t) {
 	e.traverse((e) => {
-		e.frustumCulled = e[Bt] && t;
+		e.frustumCulled = e[ft] && t;
 	});
 }
-var qt = class extends o {
+var TilesRenderer = class extends i {
 	get autoDisableRendererCulling() {
 		return this._autoDisableRendererCulling;
 	}
 	set autoDisableRendererCulling(e) {
 		this._autoDisableRendererCulling !== e && (super._autoDisableRendererCulling = e, this.forEachLoadedModel((t) => {
-			Kt(t, !e);
+			updateFrustumCulled(t, !e);
 		}));
 	}
 	constructor(...e) {
-		super(...e), this.accelerateRaycast = !0, this.group = new dt(this), this.ellipsoid = Je.clone(), this.cameras = [], this.cameraMap = /* @__PURE__ */ new Map(), this.cameraInfo = [], this._upRotationMatrix = new S(), this._bytesUsed = /* @__PURE__ */ new WeakMap(), this._autoDisableRendererCulling = !0, this.manager = new b(), this._listeners = {};
+		super(...e), this.accelerateRaycast = !0, this.group = new TilesGroup(this), this.ellipsoid = Le.clone(), this.cameras = [], this.cameraMap = /* @__PURE__ */ new Map(), this.cameraInfo = [], this._upRotationMatrix = new S(), this._bytesUsed = /* @__PURE__ */ new WeakMap(), this._autoDisableRendererCulling = !0, this.manager = new te(), this._listeners = {};
 	}
 	addEventListener(e, t) {
-		_.prototype.addEventListener.call(this, e, t);
+		v.prototype.addEventListener.call(this, e, t);
 	}
 	hasEventListener(e, t) {
-		return _.prototype.hasEventListener.call(this, e, t);
+		return v.prototype.hasEventListener.call(this, e, t);
 	}
 	removeEventListener(e, t) {
-		_.prototype.removeEventListener.call(this, e, t);
+		v.prototype.removeEventListener.call(this, e, t);
 	}
 	dispatchEvent(e) {
-		_.prototype.dispatchEvent.call(this, e);
+		v.prototype.dispatchEvent.call(this, e);
 	}
 	getBoundingBox(e) {
 		if (!this.root) return !1;
@@ -683,7 +684,7 @@ var qt = class extends o {
 		}, null, !1);
 	}
 	raycast(e, t) {
-		if (this.root) if (this.accelerateRaycast) ht(this, this.root, e, t);
+		if (this.root) if (this.accelerateRaycast) raycastTraverse(this, this.root, e, t);
 		else {
 			let n = e.firstHitOnly ? [] : t;
 			for (let t of this.activeTiles) {
@@ -714,7 +715,7 @@ var qt = class extends o {
 		return n ? t.copy(n) : null;
 	}
 	setResolutionFromRenderer(e, t) {
-		return t.getSize(Ut), this.setResolution(e, Ut.x, Ut.y);
+		return t.getSize(ht), this.setResolution(e, ht.x, ht.y);
 	}
 	deleteCamera(e) {
 		let t = this.cameras, n = this.cameraMap;
@@ -732,10 +733,10 @@ var qt = class extends o {
 			let { asset: t, extensions: n = {} } = e;
 			switch ((t && t.gltfUpAxis || "y").toLowerCase()) {
 				case "x":
-					this._upRotationMatrix.makeRotationAxis(Gt, -Math.PI / 2);
+					this._upRotationMatrix.makeRotationAxis(_t, -Math.PI / 2);
 					break;
 				case "y":
-					this._upRotationMatrix.makeRotationAxis(Wt, Math.PI / 2);
+					this._upRotationMatrix.makeRotationAxis(gt, Math.PI / 2);
 					break;
 			}
 			if ("3DTILES_ellipsoid" in n) {
@@ -749,14 +750,14 @@ var qt = class extends o {
 		let e = this.group, t = this.cameras, n = this.cameraMap, r = this.cameraInfo;
 		for (; r.length > t.length;) r.pop();
 		for (; r.length < t.length;) r.push({
-			frustum: new Pt(),
+			frustum: new ExtendedFrustum(),
 			isOrthographic: !1,
 			sseDenominator: -1,
 			position: new T(),
 			invScale: -1,
 			pixelSize: 0
 		});
-		Ht.setFromMatrixScale(e.matrixWorldInverse), Math.abs(Math.max(Ht.x - Ht.y, Ht.x - Ht.z)) > 1e-6 && console.warn("ThreeTilesRenderer : Non uniform scale used for tile which may cause issues when calculating screen space error.");
+		mt.setFromMatrixScale(e.matrixWorldInverse), Math.abs(Math.max(mt.x - mt.y, mt.x - mt.z)) > 1e-6 && console.warn("ThreeTilesRenderer : Non uniform scale used for tile which may cause issues when calculating screen space error.");
 		for (let i = 0, a = r.length; i < a; i++) {
 			let a = t[i], o = r[i], s = o.frustum, c = o.position, l = n.get(a);
 			(l.width === 0 || l.height === 0) && console.warn("TilesRenderer: resolution for camera error calculation is not set.");
@@ -765,7 +766,7 @@ var qt = class extends o {
 				let e = 2 / u[0], t = 2 / u[5];
 				o.pixelSize = Math.max(t / l.height, e / l.width);
 			} else o.sseDenominator = 2 / u[5] / l.height;
-			Vt.copy(e.matrixWorld), Vt.premultiply(a.matrixWorldInverse), Vt.premultiply(a.projectionMatrix), s.setFromProjectionMatrix(Vt, a.coordinateSystem, a.reversedDepth), c.set(0, 0, 0), c.applyMatrix4(a.matrixWorld), c.applyMatrix4(e.matrixWorldInverse);
+			pt.copy(e.matrixWorld), pt.premultiply(a.matrixWorldInverse), pt.premultiply(a.projectionMatrix), s.setFromProjectionMatrix(pt, a.coordinateSystem, a.reversedDepth), c.set(0, 0, 0), c.applyMatrix4(a.matrixWorld), c.applyMatrix4(e.matrixWorldInverse);
 		}
 	}
 	update() {
@@ -782,72 +783,72 @@ var qt = class extends o {
 			for (let e = 0; e < 16; e++) r.elements[e] = t[e];
 		}
 		n && r.premultiply(n.engineData.transform);
-		let i = new S().copy(r).invert(), a = new jt();
+		let i = new S().copy(r).invert(), a = new TileBoundingVolume();
 		"sphere" in e.boundingVolume && a.setSphereData(...e.boundingVolume.sphere, r), "box" in e.boundingVolume && a.setObbData(e.boundingVolume.box, r), "region" in e.boundingVolume && a.setRegionData(this.ellipsoid, ...e.boundingVolume.region), e.engineData.transform = r, e.engineData.transformInverse = i, e.engineData.boundingVolume = a, e.engineData.geometry = null, e.engineData.materials = null, e.engineData.textures = null;
 	}
-	async parseTile(e, t, i, a, o) {
-		let s = t.engineData, c = n(a), l = this.fetchOptions, u = this.manager, d = null, f = s.transform, p = this._upRotationMatrix, m = (r(e) || i).toLowerCase();
+	async parseTile(e, t, n, r, i) {
+		let a = t.engineData, o = l(r), s = this.fetchOptions, c = this.manager, d = null, f = a.transform, p = this._upRotationMatrix, m = (u(e) || n).toLowerCase();
 		switch (m) {
 			case "b3dm": {
-				let t = new _e(u);
-				t.workingPath = c, t.fetchOptions = l, t.adjustmentTransform.copy(p), d = t.parse(e);
+				let t = new B3DMLoader(c);
+				t.workingPath = o, t.fetchOptions = s, t.adjustmentTransform.copy(p), d = t.parse(e);
 				break;
 			}
 			case "pnts": {
-				let t = new Se(u);
-				t.workingPath = c, t.fetchOptions = l, d = t.parse(e);
+				let t = new PNTSLoader(c);
+				t.workingPath = o, t.fetchOptions = s, d = t.parse(e);
 				break;
 			}
 			case "i3dm": {
-				let t = new ct(u);
-				t.workingPath = c, t.fetchOptions = l, t.adjustmentTransform.copy(p), t.ellipsoid.copy(this.ellipsoid), d = t.parse(e);
+				let t = new I3DMLoader(c);
+				t.workingPath = o, t.fetchOptions = s, t.adjustmentTransform.copy(p), t.ellipsoid.copy(this.ellipsoid), d = t.parse(e);
 				break;
 			}
 			case "cmpt": {
-				let t = new lt(u);
-				t.workingPath = c, t.fetchOptions = l, t.adjustmentTransform.copy(p), t.ellipsoid.copy(this.ellipsoid), d = t.parse(e).then((e) => e.scene);
+				let t = new CMPTLoader(c);
+				t.workingPath = o, t.fetchOptions = s, t.adjustmentTransform.copy(p), t.ellipsoid.copy(this.ellipsoid), d = t.parse(e).then((e) => e.scene);
 				break;
 			}
 			case "gltf":
 			case "glb": {
-				let t = u.getHandler("path.gltf") || u.getHandler("path.glb") || new he(u);
-				t.setWithCredentials(l.credentials === "include"), t.setRequestHeader(l.headers || {}), l.credentials === "include" && l.mode === "cors" && t.setCrossOrigin("use-credentials");
-				let n = t.resourcePath || t.path || c;
+				let t = c.getHandler("path.gltf") || c.getHandler("path.glb") || new ge(c);
+				t.setWithCredentials(s.credentials === "include"), t.setRequestHeader(s.headers || {}), s.credentials === "include" && s.mode === "cors" && t.setCrossOrigin("use-credentials");
+				let n = t.resourcePath || t.path || o;
 				!/[\\/]$/.test(n) && n.length && (n += "/"), d = t.parseAsync(e, n).then((e) => {
-					e.scene = e.scene || new y();
+					e.scene = e.scene || new b();
 					let { scene: t } = e;
 					return t.updateMatrix(), t.matrix.multiply(p).decompose(t.position, t.quaternion, t.scale), e;
 				});
 				break;
 			}
 			default:
-				d = this.invokeOnePlugin((n) => n.parseToMesh && n.parseToMesh(e, t, i, a, o));
+				d = this.invokeOnePlugin((a) => a.parseToMesh && a.parseToMesh(e, t, n, r, i));
 				break;
 		}
 		let h = await d;
 		if (h === null) throw Error(`TilesRenderer: Content type "${m}" not supported.`);
 		let g, _;
 		h.isObject3D ? (g = h, _ = null) : (g = h.scene, _ = h), g.updateMatrix(), g.matrix.premultiply(f), g.matrix.decompose(g.position, g.quaternion, g.scale), await this.invokeAllPlugins((e) => e.processTileModel && e.processTileModel(g, t)), g.traverse((e) => {
-			e[Bt] = e.frustumCulled;
-		}), Kt(g, !this.autoDisableRendererCulling);
-		let v = [], ee = [], b = [];
+			e[ft] = e.frustumCulled;
+		}), updateFrustumCulled(g, !this.autoDisableRendererCulling);
+		let v = [], y = [], ee = [];
 		if (g.traverse((e) => {
-			if (e.geometry && ee.push(e.geometry), e.material) {
+			if (e.geometry && y.push(e.geometry), e.material) {
 				let t = e.material;
 				v.push(e.material);
 				for (let e in t) {
 					let n = t[e];
-					n && n.isTexture && b.push(n);
+					n && n.isTexture && ee.push(n);
 				}
 			}
-		}), o.aborted) {
-			for (let e = 0, t = b.length; e < t; e++) {
-				let t = b[e];
+		}), i.aborted) {
+			for (let e = 0, t = ee.length; e < t; e++) {
+				let t = ee[e];
 				t.image instanceof ImageBitmap && t.image.close(), t.dispose();
 			}
 			return;
 		}
-		s.materials = v, s.geometry = ee, s.textures = b, s.scene = g, s.metadata = _;
+		a.materials = v, a.geometry = y, a.textures = ee, a.scene = g, a.metadata = _;
 	}
 	disposeTile(e) {
 		super.disposeTile(e);
@@ -878,7 +879,7 @@ var qt = class extends o {
 	}
 	calculateBytesUsed(e, t) {
 		let n = this._bytesUsed;
-		return !n.has(e) && t && n.set(e, zt(t)), n.get(e) ?? null;
+		return !n.has(e) && t && n.set(e, estimateBytesUsed$1(t)), n.get(e) ?? null;
 	}
 	calculateTileViewError(e, t) {
 		let n = e.engineData, r = this.cameras, i = this.cameraInfo, a = n.boundingVolume, o = !1, s = 0, c = Infinity, l = 0, u = Infinity;
@@ -899,9 +900,9 @@ var qt = class extends o {
 	dispose() {
 		super.dispose(), this.group.removeFromParent();
 	}
-}, Jt = class extends ne {
+}, PivotPointMesh = class extends re {
 	constructor() {
-		super(new oe(0, 0), new Yt()), this.renderOrder = Infinity;
+		super(new se(0, 0), new PivotMaterial()), this.renderOrder = Infinity;
 	}
 	onBeforeRender(e) {
 		let t = this.material.uniforms;
@@ -913,7 +914,7 @@ var qt = class extends o {
 	dispose() {
 		this.geometry.dispose(), this.material.dispose();
 	}
-}, Yt = class extends de {
+}, PivotMaterial = class extends fe {
 	constructor() {
 		super({
 			depthWrite: !1,
@@ -929,7 +930,7 @@ var qt = class extends o {
 			fragmentShader: "\n\n				uniform float size;\n				uniform float thickness;\n				uniform float opacity;\n\n				varying vec2 vUv;\n				void main() {\n\n					float ht = 0.5 * thickness;\n					float planeDim = size + thickness;\n					float offset = ( planeDim - ht - 2.0 ) / planeDim;\n					float texelThickness = ht / planeDim;\n\n					vec2 vec = vUv * 2.0 - vec2( 1.0 );\n					float dist = abs( length( vec ) - offset );\n					float fw = fwidth( dist ) * 0.5;\n					float a = smoothstep( texelThickness - fw, texelThickness + fw, dist );\n\n					gl_FragColor = vec4( 1, 1, 1, opacity * ( 1.0 - a ) );\n\n				}\n			"
 		});
 	}
-}, Xt = /* @__PURE__ */ new w(), Zt = /* @__PURE__ */ new w(), Qt = class {
+}, vt = /* @__PURE__ */ new w(), yt = /* @__PURE__ */ new w(), PointerTracker = class {
 	constructor() {
 		this.domElement = null, this.buttons = 0, this.pointerType = null, this.pointerOrder = [], this.previousPositions = {}, this.pointerPositions = {}, this.startPositions = {}, this.pointerSetThisFrame = {}, this.hoverPosition = new w(), this.hoverSet = !1;
 	}
@@ -983,7 +984,7 @@ var qt = class extends o {
 		return this.getCenterPoint(e, this.startPositions);
 	}
 	getMoveDistance() {
-		return this.getCenterPoint(Xt), this.getPreviousCenterPoint(Zt), Xt.sub(Zt).length();
+		return this.getCenterPoint(vt), this.getPreviousCenterPoint(yt), vt.sub(yt).length();
 	}
 	getTouchPointerDistance(e = this.pointerPositions) {
 		if (this.getPointerCount() <= 1 || this.getPointerType() === "mouse") return 0;
@@ -1011,18 +1012,18 @@ var qt = class extends o {
 	isRightClicked() {
 		return !!(this.buttons & 2);
 	}
-}, $t = /* @__PURE__ */ new S();
-function en(e, t, n) {
-	return n.makeTranslation(-e.x, -e.y, -e.z), $t.makeRotationFromQuaternion(t), n.premultiply($t), $t.makeTranslation(e.x, e.y, e.z), n.premultiply($t), n;
+}, bt = /* @__PURE__ */ new S();
+function makeRotateAroundPoint(e, t, n) {
+	return n.makeTranslation(-e.x, -e.y, -e.z), bt.makeRotationFromQuaternion(t), n.premultiply(bt), bt.makeTranslation(e.x, e.y, e.z), n.premultiply(bt), n;
 }
-function tn(e, t, n) {
+function adjustedPointerToCoords(e, t, n) {
 	n.x = e.x / t.clientWidth * 2 - 1, n.y = -(e.y / t.clientHeight) * 2 + 1, n.isVector3 && (n.z = 0);
 }
-function R(e, t, n) {
-	let { origin: r, direction: i } = e instanceof le ? e : e.ray;
+function setRaycasterFromCamera(e, t, n) {
+	let { origin: r, direction: i } = e instanceof ue ? e : e.ray;
 	r.set(t.x, t.y, -1).unproject(n), i.set(t.x, t.y, 1).unproject(n).sub(r), e.isRay || (e.near = 0, e.far = i.length(), e.camera = n), i.normalize();
 }
-var nn = .05, rn = .025, an = /* @__PURE__ */ new S(), on = /* @__PURE__ */ new S(), z = /* @__PURE__ */ new T(), B = /* @__PURE__ */ new T(), sn = /* @__PURE__ */ new T(), cn = /* @__PURE__ */ new T(), V = /* @__PURE__ */ new T(), H = /* @__PURE__ */ new T(), ln = /* @__PURE__ */ new T(), un = /* @__PURE__ */ new T(), U = /* @__PURE__ */ new C(), dn = /* @__PURE__ */ new ae(), W = /* @__PURE__ */ new T(), fn = /* @__PURE__ */ new T(), pn = /* @__PURE__ */ new T(), mn = /* @__PURE__ */ new C(), G = /* @__PURE__ */ new le(), hn = /* @__PURE__ */ new T(), gn = /* @__PURE__ */ new w(), K = /* @__PURE__ */ new w(), _n = /* @__PURE__ */ new w(), vn = /* @__PURE__ */ new w(), yn = /* @__PURE__ */ new w(), bn = /* @__PURE__ */ new w(), xn = { type: "change" }, Sn = { type: "start" }, Cn = { type: "end" }, wn = class extends _ {
+var xt = .05, St = .025, R = /* @__PURE__ */ new S(), Ct = /* @__PURE__ */ new S(), z = /* @__PURE__ */ new T(), B = /* @__PURE__ */ new T(), wt = /* @__PURE__ */ new T(), Tt = /* @__PURE__ */ new T(), V = /* @__PURE__ */ new T(), H = /* @__PURE__ */ new T(), Et = /* @__PURE__ */ new T(), Dt = /* @__PURE__ */ new T(), U = /* @__PURE__ */ new C(), Ot = /* @__PURE__ */ new oe(), W = /* @__PURE__ */ new T(), kt = /* @__PURE__ */ new T(), At = /* @__PURE__ */ new T(), jt = /* @__PURE__ */ new C(), G = /* @__PURE__ */ new ue(), Mt = /* @__PURE__ */ new T(), Nt = /* @__PURE__ */ new w(), K = /* @__PURE__ */ new w(), Pt = /* @__PURE__ */ new w(), Ft = /* @__PURE__ */ new w(), It = /* @__PURE__ */ new w(), Lt = /* @__PURE__ */ new w(), Rt = { type: "change" }, zt = { type: "start" }, Bt = { type: "end" }, EnvironmentControls = class extends v {
 	get enabled() {
 		return this._enabled;
 	}
@@ -1030,7 +1031,7 @@ var nn = .05, rn = .025, an = /* @__PURE__ */ new S(), on = /* @__PURE__ */ new 
 		e !== this.enabled && (this._enabled = e, this.resetState(), this.pointerTracker.reset(), this.enabled || (this.dragInertia.set(0, 0, 0), this.rotationInertia.set(0, 0)));
 	}
 	constructor(e = null, t = null, n = null) {
-		super(), this.isEnvironmentControls = !0, this.domElement = null, this.camera = null, this.scene = null, this.tilesRenderer = null, this._enabled = !0, this.cameraRadius = 5, this.rotationSpeed = 1, this.minAltitude = 0, this.maxAltitude = .45 * Math.PI, this.minDistance = 10, this.maxDistance = Infinity, this.minZoom = 0, this.maxZoom = Infinity, this.zoomSpeed = 1, this.adjustHeight = !0, this.enableDamping = !1, this.dampingFactor = .15, this.fallbackPlane = new ae(new T(0, 1, 0), 0), this.useFallbackPlane = !0, this.enableFlight = !1, this.flightSpeed = 10, this.flightSpeedMultiplier = 4, this.scaleZoomOrientationAtEdges = !1, this.autoAdjustCameraRotation = !0, this.state = 0, this.pointerTracker = new Qt(), this.needsUpdate = !1, this.actionHeightOffset = 0, this.pivotPoint = new T(), this.zoomDirectionSet = !1, this.zoomPointSet = !1, this.zoomDirection = new T(), this.zoomPoint = new T(), this.zoomDelta = 0, this.rotationInertiaPivot = new T(), this.rotationInertia = new w(), this.dragInertia = new T(), this.inertiaTargetDistance = Infinity, this.inertiaStableFrames = 0, this.pivotMesh = new Jt(), this.pivotMesh.raycast = () => {}, this.pivotMesh.scale.setScalar(.25), this.raycaster = new ue(), this.raycaster.firstHitOnly = !0, this.up = new T(0, 1, 0), this._lastTime = performance.now(), this._keysDown = /* @__PURE__ */ new Set(), this._detachCallback = null, this._upInitialized = !1, this._lastUsedState = 0, this._zoomPointWasSet = !1, this._tilesOnChangeCallback = () => this.zoomPointSet = !1, n && this.attach(n), t && this.setCamera(t), e && this.setScene(e);
+		super(), this.isEnvironmentControls = !0, this.domElement = null, this.camera = null, this.scene = null, this.tilesRenderer = null, this._enabled = !0, this.cameraRadius = 5, this.rotationSpeed = 1, this.minAltitude = 0, this.maxAltitude = .45 * Math.PI, this.minDistance = 10, this.maxDistance = Infinity, this.minZoom = 0, this.maxZoom = Infinity, this.zoomSpeed = 1, this.adjustHeight = !0, this.enableDamping = !1, this.dampingFactor = .15, this.fallbackPlane = new oe(new T(0, 1, 0), 0), this.useFallbackPlane = !0, this.enableFlight = !1, this.flightSpeed = 10, this.flightSpeedMultiplier = 4, this.scaleZoomOrientationAtEdges = !1, this.autoAdjustCameraRotation = !0, this.state = 0, this.pointerTracker = new PointerTracker(), this.needsUpdate = !1, this.actionHeightOffset = 0, this.pivotPoint = new T(), this.zoomDirectionSet = !1, this.zoomPointSet = !1, this.zoomDirection = new T(), this.zoomPoint = new T(), this.zoomDelta = 0, this.rotationInertiaPivot = new T(), this.rotationInertia = new w(), this.dragInertia = new T(), this.inertiaTargetDistance = Infinity, this.inertiaStableFrames = 0, this.pivotMesh = new PivotPointMesh(), this.pivotMesh.raycast = () => {}, this.pivotMesh.scale.setScalar(.25), this.raycaster = new de(), this.raycaster.firstHitOnly = !0, this.up = new T(0, 1, 0), this._lastTime = performance.now(), this._keysDown = /* @__PURE__ */ new Set(), this._detachCallback = null, this._upInitialized = !1, this._lastUsedState = 0, this._zoomPointWasSet = !1, this._tilesOnChangeCallback = () => this.zoomPointSet = !1, n && this.attach(n), t && this.setCamera(t), e && this.setScene(e);
 	}
 	_getDeltaTime() {
 		let e = performance.now(), t = e - this._lastTime;
@@ -1045,9 +1046,9 @@ var nn = .05, rn = .025, an = /* @__PURE__ */ new S(), on = /* @__PURE__ */ new 
 	attach(e) {
 		if (this.domElement) throw Error("EnvironmentControls: Controls already attached to element");
 		this.domElement = e, this.pointerTracker.domElement = e, e.style.touchAction = "none", e.hasAttribute("tabindex") || (e.tabIndex = -1);
-		let t = (e) => {
+		let contextMenuCallback = (e) => {
 			this.enabled && e.preventDefault();
-		}, n = (e) => {
+		}, pointerdownCallback = (e) => {
 			let { camera: t, raycaster: n, domElement: r, up: i, pivotMesh: a, pointerTracker: o, scene: s, pivotPoint: c, enabled: l, enableFlight: u, _keysDown: d } = this;
 			if (!this.enabled) return;
 			if (e.preventDefault(), r.focus(), o.addPointer(e), this.needsUpdate = !0, o.isPointerTouch()) {
@@ -1057,9 +1058,9 @@ var nn = .05, rn = .025, an = /* @__PURE__ */ new S(), on = /* @__PURE__ */ new 
 					return;
 				}
 			}
-			o.getCenterPoint(K), tn(K, r, K), R(n, K, t);
+			o.getCenterPoint(K), adjustedPointerToCoords(K, r, K), setRaycasterFromCamera(n, K, t);
 			let f = Math.abs(n.ray.direction.dot(i));
-			if (f < nn || f < rn) return;
+			if (f < xt || f < St) return;
 			let p = d.has("w") || d.has("s") || d.has("a") || d.has("d") || d.has("q") || d.has("e") || d.has("arrowup") || d.has("arrowdown") || d.has("arrowleft") || d.has("arrowright") || d.has("shift");
 			if (u && p && !o.isPointerTouch() && (o.isRightClicked() || o.isLeftClicked())) {
 				c.copy(t.position), this.setState(5);
@@ -1067,32 +1068,32 @@ var nn = .05, rn = .025, an = /* @__PURE__ */ new S(), on = /* @__PURE__ */ new 
 			}
 			let m = this._raycast(n);
 			m && (o.getPointerCount() === 2 || o.isRightClicked() || o.isLeftClicked() && e.shiftKey ? (c.copy(m.point), a.position.copy(m.point), a.visible = o.isPointerTouch() ? !1 : l, a.updateMatrixWorld(), s.add(a), this.setState(o.isPointerTouch() ? 4 : 2)) : o.isLeftClicked() && (c.copy(m.point), a.position.copy(m.point), a.updateMatrixWorld(), s.add(a), this.setState(1)));
-		}, r = !1, i = (e) => {
-			let { pointerTracker: t } = this;
+		}, t = !1, pointermoveCallback = (e) => {
+			let { pointerTracker: n } = this;
 			if (!this.enabled) return;
 			e.preventDefault();
-			let { pivotMesh: n, enabled: i } = this;
-			this.zoomDirectionSet = !1, this.zoomPointSet = !1, this.state !== 0 && (this.needsUpdate = !0), t.setHoverEvent(e), t.updatePointer(e) && (t.isPointerTouch() && t.getPointerCount() === 2 && (r || (r = !0, queueMicrotask(() => {
-				r = !1, t.getCenterPoint(yn);
-				let e = t.getStartTouchPointerDistance(), a = t.getTouchPointerDistance(), o = a - e;
+			let { pivotMesh: r, enabled: i } = this;
+			this.zoomDirectionSet = !1, this.zoomPointSet = !1, this.state !== 0 && (this.needsUpdate = !0), n.setHoverEvent(e), n.updatePointer(e) && (n.isPointerTouch() && n.getPointerCount() === 2 && (t || (t = !0, queueMicrotask(() => {
+				t = !1, n.getCenterPoint(It);
+				let e = n.getStartTouchPointerDistance(), a = n.getTouchPointerDistance(), o = a - e;
 				if (this.state === 0 || this.state === 4) {
-					t.getCenterPoint(yn), t.getStartCenterPoint(bn);
-					let e = 2 * window.devicePixelRatio, n = yn.distanceTo(bn);
-					(Math.abs(o) > e || n > e) && (Math.abs(o) > n ? (this.setState(3), this.zoomDirectionSet = !1) : this.setState(2));
+					n.getCenterPoint(It), n.getStartCenterPoint(Lt);
+					let e = 2 * window.devicePixelRatio, t = It.distanceTo(Lt);
+					(Math.abs(o) > e || t > e) && (Math.abs(o) > t ? (this.setState(3), this.zoomDirectionSet = !1) : this.setState(2));
 				}
 				if (this.state === 3) {
-					let e = t.getPreviousTouchPointerDistance();
-					this.zoomDelta += a - e, n.visible = !1;
-				} else this.state === 2 && (n.visible = i);
-			}))), this.dispatchEvent(xn));
-		}, a = (t) => {
+					let e = n.getPreviousTouchPointerDistance();
+					this.zoomDelta += a - e, r.visible = !1;
+				} else this.state === 2 && (r.visible = i);
+			}))), this.dispatchEvent(Rt));
+		}, pointerupCallback = (t) => {
 			let { pointerTracker: n } = this;
 			!this.enabled || n.getPointerCount() === 0 || (n.deletePointer(t), n.getPointerType() === "touch" && n.getPointerCount() === 0 && e.releasePointerCapture(t.pointerId), this.resetState(), this.needsUpdate = !0);
-		}, o = (e) => {
+		}, wheelCallback = (e) => {
 			if (!this.enabled) return;
 			e.preventDefault();
 			let { pointerTracker: t } = this;
-			t.setHoverEvent(e), t.updatePointer(e), this.dispatchEvent(Sn);
+			t.setHoverEvent(e), t.updatePointer(e), this.dispatchEvent(zt);
 			let n;
 			switch (e.deltaMode) {
 				case 2:
@@ -1106,23 +1107,23 @@ var nn = .05, rn = .025, an = /* @__PURE__ */ new S(), on = /* @__PURE__ */ new 
 					break;
 			}
 			let r = Math.sign(n), i = Math.abs(n);
-			this.zoomDelta -= .25 * r * i, this.needsUpdate = !0, this._lastUsedState = 3, this.dispatchEvent(Cn);
-		}, s = (e) => {
+			this.zoomDelta -= .25 * r * i, this.needsUpdate = !0, this._lastUsedState = 3, this.dispatchEvent(Bt);
+		}, pointerleaveCallback = (e) => {
 			this.enabled && this.resetState();
 		};
-		e.addEventListener("contextmenu", t), e.addEventListener("pointerdown", n), e.addEventListener("wheel", o, { passive: !1 });
-		let c = e.getRootNode();
-		c.addEventListener("pointermove", i), c.addEventListener("pointerup", a), c.addEventListener("pointerleave", s);
-		let l = (e) => {
+		e.addEventListener("contextmenu", contextMenuCallback), e.addEventListener("pointerdown", pointerdownCallback), e.addEventListener("wheel", wheelCallback, { passive: !1 });
+		let n = e.getRootNode();
+		n.addEventListener("pointermove", pointermoveCallback), n.addEventListener("pointerup", pointerupCallback), n.addEventListener("pointerleave", pointerleaveCallback);
+		let keydownCallback = (e) => {
 			let { _keysDown: t, state: n } = this;
 			t.add(e.key.toLowerCase()), (t.has("w") || t.has("s") || t.has("a") || t.has("d") || t.has("q") || t.has("e") || t.has("arrowup") || t.has("arrowdown") || t.has("arrowleft") || t.has("arrowright")) && n !== 5 && this.resetState();
-		}, u = (e) => {
+		}, keyupCallback = (e) => {
 			this._keysDown.delete(e.key.toLowerCase());
-		}, d = () => {
+		}, blurCallback = () => {
 			this._keysDown.clear();
 		};
-		e.addEventListener("keydown", l), window.addEventListener("keyup", u), window.addEventListener("blur", d), this._detachCallback = () => {
-			e.removeEventListener("contextmenu", t), e.removeEventListener("pointerdown", n), e.removeEventListener("wheel", o), c.removeEventListener("pointermove", i), c.removeEventListener("pointerup", a), c.removeEventListener("pointerleave", s), e.removeEventListener("keydown", l), window.removeEventListener("keyup", u), window.removeEventListener("blur", d);
+		e.addEventListener("keydown", keydownCallback), window.addEventListener("keyup", keyupCallback), window.addEventListener("blur", blurCallback), this._detachCallback = () => {
+			e.removeEventListener("contextmenu", contextMenuCallback), e.removeEventListener("pointerdown", pointerdownCallback), e.removeEventListener("wheel", wheelCallback), n.removeEventListener("pointermove", pointermoveCallback), n.removeEventListener("pointerup", pointerupCallback), n.removeEventListener("pointerleave", pointerleaveCallback), e.removeEventListener("keydown", keydownCallback), window.removeEventListener("keyup", keyupCallback), window.removeEventListener("blur", blurCallback);
 		};
 	}
 	detach() {
@@ -1138,7 +1139,7 @@ var nn = .05, rn = .025, an = /* @__PURE__ */ new S(), on = /* @__PURE__ */ new 
 		let t = null;
 		this._lastUsedState === 3 ? this._zoomPointWasSet && (t = e.copy(this.zoomPoint)) : (this._lastUsedState === 2 || this._lastUsedState === 1) && (t = e.copy(this.pivotPoint));
 		let { camera: n, raycaster: r } = this;
-		t !== null && (B.copy(t).project(n), (B.x < -1 || B.x > 1 || B.y < -1 || B.y > 1) && (t = null)), R(r, {
+		t !== null && (B.copy(t).project(n), (B.x < -1 || B.x > 1 || B.y < -1 || B.y > 1) && (t = null)), setRaycasterFromCamera(r, {
 			x: 0,
 			y: 0
 		}, n);
@@ -1146,10 +1147,10 @@ var nn = .05, rn = .025, an = /* @__PURE__ */ new S(), on = /* @__PURE__ */ new 
 		return i && (t === null || i.distance < t.distanceTo(r.ray.origin)) && (t = e.copy(i.point)), t;
 	}
 	resetState() {
-		this.state !== 0 && this.dispatchEvent(Cn), this.state = 0, this.pivotMesh.removeFromParent(), this.pivotMesh.visible = this.enabled, this.actionHeightOffset = 0, this.pointerTracker.reset();
+		this.state !== 0 && this.dispatchEvent(Bt), this.state = 0, this.pivotMesh.removeFromParent(), this.pivotMesh.visible = this.enabled, this.actionHeightOffset = 0, this.pointerTracker.reset();
 	}
 	setState(e = this.state, t = !0) {
-		this.state !== e && (this.state === 0 && t && this.dispatchEvent(Sn), this.pivotMesh.visible = this.enabled, this.dragInertia.set(0, 0, 0), this.rotationInertia.set(0, 0), this.inertiaStableFrames = 0, this.state = e, e !== 0 && e !== 4 && (this._lastUsedState = e));
+		this.state !== e && (this.state === 0 && t && this.dispatchEvent(zt), this.pivotMesh.visible = this.enabled, this.dragInertia.set(0, 0, 0), this.rotationInertia.set(0, 0), this.inertiaStableFrames = 0, this.state = e, e !== 0 && e !== 4 && (this._lastUsedState = e));
 	}
 	update(e = Math.min(this._getDeltaTime(), 64 / 1e3)) {
 		if (!this.enabled || !this.camera || e === 0) return;
@@ -1158,10 +1159,10 @@ var nn = .05, rn = .025, an = /* @__PURE__ */ new S(), on = /* @__PURE__ */ new 
 		let c = this._inertiaNeedsUpdate(), l = this.needsUpdate || c;
 		if (this.needsUpdate || c) {
 			let n = this.zoomDelta;
-			this._updateZoom(), this._updatePosition(e), this._updateRotation(e), a === 1 || a === 2 || a === 5 ? (V.set(0, 0, -1).transformDirection(t.matrixWorld), this.inertiaTargetDistance = B.copy(r).sub(t.position).dot(V)) : a === 0 && this._updateInertia(e), (a !== 0 || n !== 0 || c) && this.dispatchEvent(xn), this.needsUpdate = !1;
+			this._updateZoom(), this._updatePosition(e), this._updateRotation(e), a === 1 || a === 2 || a === 5 ? (V.set(0, 0, -1).transformDirection(t.matrixWorld), this.inertiaTargetDistance = B.copy(r).sub(t.position).dot(V)) : a === 0 && this._updateInertia(e), (a !== 0 || n !== 0 || c) && this.dispatchEvent(Rt), this.needsUpdate = !1;
 		}
 		let u = this._updateFlight(e);
-		u && (this.dragInertia.set(0, 0, 0), this.rotationInertia.set(0, 0, 0), this.dispatchEvent(xn));
+		u && (this.dragInertia.set(0, 0, 0), this.rotationInertia.set(0, 0, 0), this.dispatchEvent(Rt));
 		let d = t.isOrthographicCamera ? null : o && !u && this._getPointBelowCamera() || null;
 		if (this.getCameraUpDirection(W), this._setFrame(W), (this.state === 1 || this.state === 2 || this.state === 5) && this.actionHeightOffset !== 0) {
 			let { actionHeightOffset: e } = this;
@@ -1198,12 +1199,12 @@ var nn = .05, rn = .025, an = /* @__PURE__ */ new S(), on = /* @__PURE__ */ new 
 		}
 		let u = 2 ** (-e / a), d = Math.max(o.near, s, c, l), f = 2 / (2 * 1e3) * .25;
 		if (t.lengthSq() > 0) {
-			R(G, B.set(0, 0, -1), o), G.applyMatrix4(o.matrixWorldInverse), G.direction.normalize(), G.recast(-G.direction.dot(G.origin)).at(d / G.direction.z, B), B.applyMatrix4(o.matrixWorld), R(G, z.set(f, f, -1), o), G.applyMatrix4(o.matrixWorldInverse), G.direction.normalize(), G.recast(-G.direction.dot(G.origin)).at(d / G.direction.z, z), z.applyMatrix4(o.matrixWorld), B.sub(n).normalize(), z.sub(n).normalize();
+			setRaycasterFromCamera(G, B.set(0, 0, -1), o), G.applyMatrix4(o.matrixWorldInverse), G.direction.normalize(), G.recast(-G.direction.dot(G.origin)).at(d / G.direction.z, B), B.applyMatrix4(o.matrixWorld), setRaycasterFromCamera(G, z.set(f, f, -1), o), G.applyMatrix4(o.matrixWorldInverse), G.direction.normalize(), G.recast(-G.direction.dot(G.origin)).at(d / G.direction.z, z), z.applyMatrix4(o.matrixWorld), B.sub(n).normalize(), z.sub(n).normalize();
 			let r = B.angleTo(z) / e;
 			t.multiplyScalar(u), (t.lengthSq() < r ** 2 || !i) && t.set(0, 0);
 		}
 		if (r.lengthSq() > 0) {
-			R(G, B.set(0, 0, -1), o), G.applyMatrix4(o.matrixWorldInverse), G.direction.normalize(), G.recast(-G.direction.dot(G.origin)).at(d / G.direction.z, B), B.applyMatrix4(o.matrixWorld), R(G, z.set(f, f, -1), o), G.applyMatrix4(o.matrixWorldInverse), G.direction.normalize(), G.recast(-G.direction.dot(G.origin)).at(d / G.direction.z, z), z.applyMatrix4(o.matrixWorld);
+			setRaycasterFromCamera(G, B.set(0, 0, -1), o), G.applyMatrix4(o.matrixWorldInverse), G.direction.normalize(), G.recast(-G.direction.dot(G.origin)).at(d / G.direction.z, B), B.applyMatrix4(o.matrixWorld), setRaycasterFromCamera(G, z.set(f, f, -1), o), G.applyMatrix4(o.matrixWorldInverse), G.direction.normalize(), G.recast(-G.direction.dot(G.origin)).at(d / G.direction.z, z), z.applyMatrix4(o.matrixWorld);
 			let t = B.distanceTo(z) / e;
 			r.multiplyScalar(u), (r.lengthSq() < t ** 2 || !i) && r.set(0, 0, 0);
 		}
@@ -1220,16 +1221,16 @@ var nn = .05, rn = .025, an = /* @__PURE__ */ new S(), on = /* @__PURE__ */ new 
 		let { camera: t, enableFlight: n, flightSpeed: r, flightSpeedMultiplier: i, _keysDown: a } = this;
 		if (!n || t.isOrthographicCamera) return !1;
 		let o = a.has("w") || a.has("arrowup"), s = a.has("s") || a.has("arrowdown"), c = a.has("a") || a.has("arrowleft"), l = a.has("d") || a.has("arrowright"), u = a.has("q"), d = a.has("e"), f = (a.has("shift") ? i : 1) * r * this._getFlightSpeedScale() * e;
-		return hn.set(!!l - +!!c, !!u - +!!d, !!s - +!!o), hn.lengthSq() === 0 ? !1 : (hn.normalize().transformDirection(t.matrixWorld), t.position.addScaledVector(hn, f), t.updateMatrixWorld(), !0);
+		return Mt.set(!!l - +!!c, !!u - +!!d, !!s - +!!o), Mt.lengthSq() === 0 ? !1 : (Mt.normalize().transformDirection(t.matrixWorld), t.position.addScaledVector(Mt, f), t.updateMatrixWorld(), !0);
 	}
 	_updateZoom() {
 		let { zoomPoint: e, zoomDirection: t, camera: n, minDistance: r, maxDistance: i, pointerTracker: a, domElement: o, minZoom: s, maxZoom: c, zoomSpeed: l, state: u } = this, d = this.zoomDelta;
 		if (this.zoomDelta = 0, !(!a.getLatestPoint(K) || d === 0 && u !== 3)) if (this.rotationInertia.set(0, 0), this.dragInertia.set(0, 0, 0), n.isOrthographicCamera) {
 			this._updateZoomDirection();
 			let e = this.zoomPointSet || this._updateZoomPoint();
-			fn.unproject(n);
+			kt.unproject(n);
 			let t = .95 ** Math.abs(d * .05), r = d > 0 ? 1 / Math.abs(t) : t;
-			r *= l, r > 1 ? c < n.zoom * r && (r = 1) : s > n.zoom * r && (r = 1), n.zoom *= r, n.updateProjectionMatrix(), e && (tn(K, o, pn), pn.unproject(n), n.position.sub(pn).add(fn), n.updateMatrixWorld());
+			r *= l, r > 1 ? c < n.zoom * r && (r = 1) : s > n.zoom * r && (r = 1), n.zoom *= r, n.updateProjectionMatrix(), e && (adjustedPointerToCoords(K, o, At), At.unproject(n), n.position.sub(At).add(kt), n.updateMatrixWorld());
 		} else {
 			this._updateZoomDirection();
 			let a = B.copy(t);
@@ -1255,12 +1256,12 @@ var nn = .05, rn = .025, an = /* @__PURE__ */ new S(), on = /* @__PURE__ */ new 
 	_updateZoomDirection() {
 		if (this.zoomDirectionSet) return;
 		let { domElement: e, raycaster: t, camera: n, zoomDirection: r, pointerTracker: i } = this;
-		i.getLatestPoint(K), tn(K, e, fn), R(t, fn, n), r.copy(t.ray.direction).normalize(), this.zoomDirectionSet = !0;
+		i.getLatestPoint(K), adjustedPointerToCoords(K, e, kt), setRaycasterFromCamera(t, kt, n), r.copy(t.ray.direction).normalize(), this.zoomDirectionSet = !0;
 	}
 	_updateZoomPoint() {
 		let { camera: e, zoomDirectionSet: t, zoomDirection: n, raycaster: r, zoomPoint: i, pointerTracker: a, domElement: o } = this;
 		if (this._zoomPointWasSet = !1, !t) return !1;
-		e.isOrthographicCamera && a.getLatestPoint(gn) ? (tn(gn, o, gn), R(r, gn, e)) : (r.ray.origin.copy(e.position), r.ray.direction.copy(n), r.near = 0, r.far = Infinity);
+		e.isOrthographicCamera && a.getLatestPoint(Nt) ? (adjustedPointerToCoords(Nt, o, Nt), setRaycasterFromCamera(r, Nt, e)) : (r.ray.origin.copy(e.position), r.ray.direction.copy(n), r.near = 0, r.far = Infinity);
 		let s = this._raycast(r);
 		return s ? (i.copy(s.point), this.zoomPointSet = !0, this._zoomPointWasSet = !0, !0) : !1;
 	}
@@ -1273,27 +1274,27 @@ var nn = .05, rn = .025, an = /* @__PURE__ */ new S(), on = /* @__PURE__ */ new 
 	_updatePosition(e) {
 		let { raycaster: t, camera: n, pivotPoint: r, up: i, pointerTracker: a, domElement: o, state: s, dragInertia: c } = this;
 		if (s === 1) {
-			if (a.getCenterPoint(K), tn(K, o, K), dn.setFromNormalAndCoplanarPoint(i, r), R(t, K, n), Math.abs(t.ray.direction.dot(i)) < nn) {
-				let e = Math.acos(nn);
-				un.crossVectors(t.ray.direction, i).normalize(), t.ray.direction.copy(i).applyAxisAngle(un, e).multiplyScalar(-1);
+			if (a.getCenterPoint(K), adjustedPointerToCoords(K, o, K), Ot.setFromNormalAndCoplanarPoint(i, r), setRaycasterFromCamera(t, K, n), Math.abs(t.ray.direction.dot(i)) < xt) {
+				let e = Math.acos(xt);
+				Dt.crossVectors(t.ray.direction, i).normalize(), t.ray.direction.copy(i).applyAxisAngle(Dt, e).multiplyScalar(-1);
 			}
-			if (this.getUpDirection(r, W), Math.abs(t.ray.direction.dot(W)) < rn) {
-				let e = Math.acos(rn);
-				un.crossVectors(t.ray.direction, W).normalize(), t.ray.direction.copy(W).applyAxisAngle(un, e).multiplyScalar(-1);
+			if (this.getUpDirection(r, W), Math.abs(t.ray.direction.dot(W)) < St) {
+				let e = Math.acos(St);
+				Dt.crossVectors(t.ray.direction, W).normalize(), t.ray.direction.copy(W).applyAxisAngle(Dt, e).multiplyScalar(-1);
 			}
-			t.ray.intersectPlane(dn, B) && (z.subVectors(r, B), n.position.add(z), n.updateMatrixWorld(), z.multiplyScalar(1 / e), a.getMoveDistance() / e < 2 * window.devicePixelRatio ? this.inertiaStableFrames++ : (c.copy(z), this.inertiaStableFrames = 0));
+			t.ray.intersectPlane(Ot, B) && (z.subVectors(r, B), n.position.add(z), n.updateMatrixWorld(), z.multiplyScalar(1 / e), a.getMoveDistance() / e < 2 * window.devicePixelRatio ? this.inertiaStableFrames++ : (c.copy(z), this.inertiaStableFrames = 0));
 		}
 	}
 	_updateRotation(e) {
 		let { pivotPoint: t, pointerTracker: n, domElement: r, state: i, rotationInertia: a } = this;
-		(i === 2 || i === 5) && (i === 5 && t.copy(this.camera.position), n.getCenterPoint(K), n.getPreviousCenterPoint(_n), vn.subVectors(K, _n).multiplyScalar(2 * Math.PI / r.clientHeight), this._applyRotation(vn.x, vn.y, t), vn.multiplyScalar(1 / e), n.getMoveDistance() / e < 2 * window.devicePixelRatio ? this.inertiaStableFrames++ : (a.copy(vn), this.inertiaStableFrames = 0));
+		(i === 2 || i === 5) && (i === 5 && t.copy(this.camera.position), n.getCenterPoint(K), n.getPreviousCenterPoint(Pt), Ft.subVectors(K, Pt).multiplyScalar(2 * Math.PI / r.clientHeight), this._applyRotation(Ft.x, Ft.y, t), Ft.multiplyScalar(1 / e), n.getMoveDistance() / e < 2 * window.devicePixelRatio ? this.inertiaStableFrames++ : (a.copy(Ft), this.inertiaStableFrames = 0));
 	}
 	_applyRotation(e, t, n) {
 		if (e === 0 && t === 0) return;
 		let { camera: r, minAltitude: i, maxAltitude: a, rotationSpeed: o } = this, s = -e * o, c = t * o;
 		V.set(0, 0, 1).transformDirection(r.matrixWorld), H.set(1, 0, 0).transformDirection(r.matrixWorld), this.getUpDirection(n, W);
 		let l;
-		W.dot(V) > .9999999999 ? l = 0 : (B.crossVectors(W, V).normalize(), l = Math.sign(B.dot(H)) * W.angleTo(V)), c > 0 ? (c = Math.min(l - i, c), c = Math.max(0, c)) : (c = Math.max(l - a, c), c = Math.min(0, c)), U.setFromAxisAngle(W, s), en(n, U, an), r.matrixWorld.premultiply(an), H.set(1, 0, 0).transformDirection(r.matrixWorld), U.setFromAxisAngle(H, -c), en(n, U, an), r.matrixWorld.premultiply(an), r.matrixWorld.decompose(r.position, r.quaternion, B);
+		W.dot(V) > .9999999999 ? l = 0 : (B.crossVectors(W, V).normalize(), l = Math.sign(B.dot(H)) * W.angleTo(V)), c > 0 ? (c = Math.min(l - i, c), c = Math.max(0, c)) : (c = Math.max(l - a, c), c = Math.min(0, c)), U.setFromAxisAngle(W, s), makeRotateAroundPoint(n, U, R), r.matrixWorld.premultiply(R), H.set(1, 0, 0).transformDirection(r.matrixWorld), U.setFromAxisAngle(H, -c), makeRotateAroundPoint(n, U, R), r.matrixWorld.premultiply(R), r.matrixWorld.decompose(r.position, r.quaternion, B);
 	}
 	_setFrame(e) {
 		let { up: t, camera: n, zoomPoint: r, zoomDirectionSet: i, zoomPointSet: a, scaleZoomOrientationAtEdges: o } = this;
@@ -1301,9 +1302,9 @@ var nn = .05, rn = .025, an = /* @__PURE__ */ new S(), on = /* @__PURE__ */ new 
 			if (U.setFromUnitVectors(t, e), o) {
 				this.getUpDirection(r, B);
 				let e = Math.max(B.dot(t) - .6, 0) / .4;
-				e = x.mapLinear(e, 0, .5, 0, 1), e = Math.min(e, 1), n.isOrthographicCamera && (e *= .1), U.slerp(mn, 1 - e);
+				e = x.mapLinear(e, 0, .5, 0, 1), e = Math.min(e, 1), n.isOrthographicCamera && (e *= .1), U.slerp(jt, 1 - e);
 			}
-			en(r, U, an), n.updateMatrixWorld(), n.matrixWorld.premultiply(an), n.matrixWorld.decompose(n.position, n.quaternion, B), this.zoomDirectionSet = !1, this._updateZoomDirection();
+			makeRotateAroundPoint(r, U, R), n.updateMatrixWorld(), n.matrixWorld.premultiply(R), n.matrixWorld.decompose(n.position, n.quaternion, B), this.zoomDirectionSet = !1, this._updateZoomDirection();
 		}
 		t.copy(e), n.updateMatrixWorld();
 	}
@@ -1323,9 +1324,9 @@ var nn = .05, rn = .025, an = /* @__PURE__ */ new S(), on = /* @__PURE__ */ new 
 		let { camera: n, state: r, pivotPoint: i, zoomPoint: a, zoomPointSet: o } = this;
 		n.updateMatrixWorld(), V.set(0, 0, -1).transformDirection(n.matrixWorld), H.set(-1, 0, 0).transformDirection(n.matrixWorld);
 		let s = x.mapLinear(1 - Math.abs(V.dot(e)), 0, .2, 0, 1);
-		s = x.clamp(s, 0, 1), t *= s, ln.crossVectors(e, V), ln.lerp(H, 1 - t).normalize(), U.setFromUnitVectors(H, ln), n.quaternion.premultiply(U);
+		s = x.clamp(s, 0, 1), t *= s, Et.crossVectors(e, V), Et.lerp(H, 1 - t).normalize(), U.setFromUnitVectors(H, Et), n.quaternion.premultiply(U);
 		let c = null;
-		r === 1 || r === 2 || r === 5 ? c = sn.copy(i) : o && (c = sn.copy(a)), c && (on.copy(n.matrixWorld).invert(), B.copy(c).applyMatrix4(on), n.updateMatrixWorld(), B.applyMatrix4(n.matrixWorld), cn.subVectors(c, B), n.position.add(cn)), n.updateMatrixWorld();
+		r === 1 || r === 2 || r === 5 ? c = wt.copy(i) : o && (c = wt.copy(a)), c && (Ct.copy(n.matrixWorld).invert(), B.copy(c).applyMatrix4(Ct), n.updateMatrixWorld(), B.applyMatrix4(n.matrixWorld), Tt.subVectors(c, B), n.position.add(Tt)), n.updateMatrixWorld();
 	}
 	_clampRotation(e) {
 		let { camera: t, minAltitude: n, maxAltitude: r, state: i, pivotPoint: a, zoomPoint: o, zoomPointSet: s } = this;
@@ -1336,11 +1337,11 @@ var nn = .05, rn = .025, an = /* @__PURE__ */ new S(), on = /* @__PURE__ */ new 
 		if (c > r) l = r;
 		else if (c < n) l = n;
 		else return;
-		V.copy(e), U.setFromAxisAngle(H, l), V.applyQuaternion(U).normalize(), B.crossVectors(V, H).normalize(), an.makeBasis(H, B, V), t.quaternion.setFromRotationMatrix(an);
+		V.copy(e), U.setFromAxisAngle(H, l), V.applyQuaternion(U).normalize(), B.crossVectors(V, H).normalize(), R.makeBasis(H, B, V), t.quaternion.setFromRotationMatrix(R);
 		let u = null;
-		i === 1 || i === 2 || i === 5 ? u = sn.copy(a) : s && (u = sn.copy(o)), u && (on.copy(t.matrixWorld).invert(), B.copy(u).applyMatrix4(on), t.updateMatrixWorld(), B.applyMatrix4(t.matrixWorld), cn.subVectors(u, B), t.position.add(cn)), t.updateMatrixWorld();
+		i === 1 || i === 2 || i === 5 ? u = wt.copy(a) : s && (u = wt.copy(o)), u && (Ct.copy(t.matrixWorld).invert(), B.copy(u).applyMatrix4(Ct), t.updateMatrixWorld(), B.applyMatrix4(t.matrixWorld), Tt.subVectors(u, B), t.position.add(Tt)), t.updateMatrixWorld();
 	}
-}, Tn = /* @__PURE__ */ new S(), En = /* @__PURE__ */ new S(), q = /* @__PURE__ */ new T(), J = /* @__PURE__ */ new T(), Y = /* @__PURE__ */ new T(), X = /* @__PURE__ */ new T(), Dn = /* @__PURE__ */ new T(), On = /* @__PURE__ */ new T(), Z = /* @__PURE__ */ new C(), kn = /* @__PURE__ */ new T(), An = /* @__PURE__ */ new T(), Q = /* @__PURE__ */ new le(), jn = /* @__PURE__ */ new qe(), Mn = /* @__PURE__ */ new w(), Nn = {}, Pn = 2550, Fn = class extends wn {
+}, Vt = /* @__PURE__ */ new S(), Ht = /* @__PURE__ */ new S(), q = /* @__PURE__ */ new T(), J = /* @__PURE__ */ new T(), Y = /* @__PURE__ */ new T(), X = /* @__PURE__ */ new T(), Ut = /* @__PURE__ */ new T(), Wt = /* @__PURE__ */ new T(), Z = /* @__PURE__ */ new C(), Gt = /* @__PURE__ */ new T(), Kt = /* @__PURE__ */ new T(), Q = /* @__PURE__ */ new ue(), qt = /* @__PURE__ */ new Ellipsoid(), Jt = /* @__PURE__ */ new w(), Yt = {}, Xt = 2550, GlobeControls = class extends EnvironmentControls {
 	get ellipsoidFrame() {
 		return this.ellipsoidGroup.matrixWorld;
 	}
@@ -1349,10 +1350,10 @@ var nn = .05, rn = .025, an = /* @__PURE__ */ new S(), on = /* @__PURE__ */ new 
 		return e.matrixWorldInverse ? e.matrixWorldInverse : n.copy(t).invert();
 	}
 	constructor(e = null, t = null, n = null) {
-		super(e, t, n), this.isGlobeControls = !0, this._dragMode = 0, this._rotationMode = 0, this.maxZoom = .01, this.nearMargin = .25, this.farMargin = 0, this.useFallbackPlane = !1, this.autoAdjustCameraRotation = !1, this.globeInertia = new C(), this.globeInertiaFactor = 0, this.ellipsoid = Je.clone(), this.ellipsoidGroup = new y(), this._ellipsoidFrameInverse = new S();
+		super(e, t, n), this.isGlobeControls = !0, this._dragMode = 0, this._rotationMode = 0, this.maxZoom = .01, this.nearMargin = .25, this.farMargin = 0, this.useFallbackPlane = !1, this.autoAdjustCameraRotation = !1, this.globeInertia = new C(), this.globeInertiaFactor = 0, this.ellipsoid = Le.clone(), this.ellipsoidGroup = new b(), this._ellipsoidFrameInverse = new S();
 	}
 	setEllipsoid(e, t) {
-		this.ellipsoid = e || Je.clone(), this.ellipsoidGroup = t || new y();
+		this.ellipsoid = e || Le.clone(), this.ellipsoidGroup = t || new b();
 	}
 	getPivotPoint(e) {
 		let { camera: t, ellipsoidFrame: n, ellipsoidFrameInverse: r, ellipsoid: i } = this;
@@ -1378,18 +1379,18 @@ var nn = .05, rn = .025, an = /* @__PURE__ */ new S(), on = /* @__PURE__ */ new 
 		let { camera: t, pivotMesh: n } = this;
 		this._isNearControls() ? this.scaleZoomOrientationAtEdges = this.zoomDelta < 0 : (this.state !== 0 && this._dragMode !== 1 && this._rotationMode !== 1 && (n.visible = !1), this.scaleZoomOrientationAtEdges = !1);
 		let r = this.needsUpdate || this._inertiaNeedsUpdate();
-		super.update(e), this.adjustCamera(t), r && (this._isNearControls() || this.state === 5) && (this.getCameraUpDirection(On), this._alignCameraUp(On, 1), this.getCameraUpDirection(On), this._clampRotation(On));
+		super.update(e), this.adjustCamera(t), r && (this._isNearControls() || this.state === 5) && (this.getCameraUpDirection(Wt), this._alignCameraUp(Wt, 1), this.getCameraUpDirection(Wt), this._clampRotation(Wt));
 	}
 	adjustCamera(e) {
 		super.adjustCamera(e);
 		let { ellipsoidFrame: t, ellipsoidFrameInverse: n, ellipsoid: r, nearMargin: i, farMargin: a } = this, o = this._getMaxWorldRadius();
 		if (e.isPerspectiveCamera) {
 			let s = J.setFromMatrixPosition(t).sub(e.position).length(), c = i * o, l = x.clamp((s - o) / c, 0, 1), u = x.lerp(1, 1e3, l);
-			e.near = Math.max(u, s - o - c), q.copy(e.position).applyMatrix4(n), r.getPositionToCartographic(q, Nn);
-			let d = Math.max(r.getPositionElevation(q), Pn);
-			e.far = r.calculateHorizonDistance(Nn.lat, d) + .1 + o * a, e.updateProjectionMatrix();
+			e.near = Math.max(u, s - o - c), q.copy(e.position).applyMatrix4(n), r.getPositionToCartographic(q, Yt);
+			let d = Math.max(r.getPositionElevation(q), Xt);
+			e.far = r.calculateHorizonDistance(Yt.lat, d) + .1 + o * a, e.updateProjectionMatrix();
 		} else {
-			this._getVirtualOrthoCameraPosition(e.position, e), e.updateMatrixWorld(), Tn.copy(e.matrixWorld).invert(), J.setFromMatrixPosition(t).applyMatrix4(Tn);
+			this._getVirtualOrthoCameraPosition(e.position, e), e.updateMatrixWorld(), Vt.copy(e.matrixWorld).invert(), J.setFromMatrixPosition(t).applyMatrix4(Vt);
 			let n = -J.z;
 			e.near = n - o * (1 + i), e.far = n + .1 + o * a, e.position.addScaledVector(X, e.near), e.far -= e.near, e.near = 0, e.updateProjectionMatrix(), e.updateMatrixWorld();
 		}
@@ -1406,11 +1407,11 @@ var nn = .05, rn = .025, an = /* @__PURE__ */ new S(), on = /* @__PURE__ */ new 
 		}
 		let l = 2 ** (-e / r), u = Math.max(i.near, a, o, s), d = 2 / (2 * 1e3) * .25;
 		if (Y.setFromMatrixPosition(c), this.globeInertiaFactor !== 0) {
-			R(Q, J.set(0, 0, -1), i), Q.applyMatrix4(i.matrixWorldInverse), Q.direction.normalize(), Q.recast(-Q.direction.dot(Q.origin)).at(u / Q.direction.z, J), J.applyMatrix4(i.matrixWorld), R(Q, q.set(d, d, -1), i), Q.applyMatrix4(i.matrixWorldInverse), Q.direction.normalize(), Q.recast(-Q.direction.dot(Q.origin)).at(u / Q.direction.z, q), q.applyMatrix4(i.matrixWorld), J.sub(Y).normalize(), q.sub(Y).normalize(), this.globeInertiaFactor *= l;
+			setRaycasterFromCamera(Q, J.set(0, 0, -1), i), Q.applyMatrix4(i.matrixWorldInverse), Q.direction.normalize(), Q.recast(-Q.direction.dot(Q.origin)).at(u / Q.direction.z, J), J.applyMatrix4(i.matrixWorld), setRaycasterFromCamera(Q, q.set(d, d, -1), i), Q.applyMatrix4(i.matrixWorldInverse), Q.direction.normalize(), Q.recast(-Q.direction.dot(Q.origin)).at(u / Q.direction.z, q), q.applyMatrix4(i.matrixWorld), J.sub(Y).normalize(), q.sub(Y).normalize(), this.globeInertiaFactor *= l;
 			let r = J.angleTo(q) / e;
 			(2 * Math.acos(t.w) * this.globeInertiaFactor < r || !n) && (this.globeInertiaFactor = 0, t.identity());
 		}
-		this.globeInertiaFactor !== 0 && (t.w === 1 && (t.x !== 0 || t.y !== 0 || t.z !== 0) && (t.w = Math.min(t.w, .999999999)), Y.setFromMatrixPosition(c), Z.identity().slerp(t, this.globeInertiaFactor * e), en(Y, Z, En), i.matrixWorld.premultiply(En), i.matrixWorld.decompose(i.position, i.quaternion, J));
+		this.globeInertiaFactor !== 0 && (t.w === 1 && (t.x !== 0 || t.y !== 0 || t.z !== 0) && (t.w = Math.min(t.w, .999999999)), Y.setFromMatrixPosition(c), Z.identity().slerp(t, this.globeInertiaFactor * e), makeRotateAroundPoint(Y, Z, Ht), i.matrixWorld.premultiply(Ht), i.matrixWorld.decompose(i.position, i.quaternion, J));
 	}
 	_inertiaNeedsUpdate() {
 		return super._inertiaNeedsUpdate() || this.globeInertiaFactor !== 0;
@@ -1433,14 +1434,14 @@ var nn = .05, rn = .025, an = /* @__PURE__ */ new S(), on = /* @__PURE__ */ new 
 	_updatePosition(e) {
 		if (this.state === 1) {
 			this._dragMode === 0 && (this._dragMode = this._isNearControls() ? 1 : -1);
-			let { raycaster: t, camera: n, pivotPoint: r, pointerTracker: i, domElement: a, ellipsoidFrame: o, ellipsoidFrameInverse: s } = this, c = q, l = Dn;
-			i.getCenterPoint(Mn), tn(Mn, a, Mn), R(t, Mn, n), t.ray.applyMatrix4(s);
+			let { raycaster: t, camera: n, pivotPoint: r, pointerTracker: i, domElement: a, ellipsoidFrame: o, ellipsoidFrameInverse: s } = this, c = q, l = Ut;
+			i.getCenterPoint(Jt), adjustedPointerToCoords(Jt, a, Jt), setRaycasterFromCamera(t, Jt, n), t.ray.applyMatrix4(s);
 			let u = J.copy(r).applyMatrix4(s).length();
-			if (jn.radius.setScalar(u), !jn.intersectRay(t.ray, J)) {
+			if (qt.radius.setScalar(u), !qt.intersectRay(t.ray, J)) {
 				this.resetState(), this._updateInertia(e);
 				return;
 			}
-			J.applyMatrix4(o), Y.setFromMatrixPosition(o), c.subVectors(r, Y).normalize(), l.subVectors(J, Y).normalize(), Z.setFromUnitVectors(l, c), en(Y, Z, En), n.matrixWorld.premultiply(En), n.matrixWorld.decompose(n.position, n.quaternion, J), i.getMoveDistance() / e < 2 * window.devicePixelRatio ? this.inertiaStableFrames++ : (this.globeInertia.copy(Z), this.globeInertiaFactor = 1 / e, this.inertiaStableFrames = 0);
+			J.applyMatrix4(o), Y.setFromMatrixPosition(o), c.subVectors(r, Y).normalize(), l.subVectors(J, Y).normalize(), Z.setFromUnitVectors(l, c), makeRotateAroundPoint(Y, Z, Ht), n.matrixWorld.premultiply(Ht), n.matrixWorld.decompose(n.position, n.quaternion, J), i.getMoveDistance() / e < 2 * window.devicePixelRatio ? this.inertiaStableFrames++ : (this.globeInertia.copy(Z), this.globeInertiaFactor = 1 / e, this.inertiaStableFrames = 0);
 		}
 	}
 	_updateRotation(...e) {
@@ -1457,9 +1458,9 @@ var nn = .05, rn = .025, an = /* @__PURE__ */ new S(), on = /* @__PURE__ */ new 
 		let o = x.clamp(x.mapLinear(Math.abs(e), 0, 20, 0, 1), 0, 1);
 		if (this._isNearControls() || e > 0) {
 			if (this._updateZoomDirection(), e < 0 && (this.zoomPointSet || this._updateZoomPoint())) {
-				X.set(0, 0, -1).transformDirection(r.matrixWorld).normalize(), An.copy(this.up).multiplyScalar(-1), this.getUpDirection(n, kn);
-				let e = x.clamp(x.mapLinear(-kn.dot(An), 1, .95, 0, 1), 0, 1), t = 1 - X.dot(An), i = r.isOrthographicCamera ? .05 : 1, a = x.clamp(o * 3, 0, 1), s = Math.min(e * t * i * a, .1);
-				An.lerpVectors(X, An, s).normalize(), Z.setFromUnitVectors(X, An), en(n, Z, En), r.matrixWorld.premultiply(En), r.matrixWorld.decompose(r.position, r.quaternion, An), this.zoomDirection.subVectors(n, r.position).normalize();
+				X.set(0, 0, -1).transformDirection(r.matrixWorld).normalize(), Kt.copy(this.up).multiplyScalar(-1), this.getUpDirection(n, Gt);
+				let e = x.clamp(x.mapLinear(-Gt.dot(Kt), 1, .95, 0, 1), 0, 1), t = 1 - X.dot(Kt), i = r.isOrthographicCamera ? .05 : 1, a = x.clamp(o * 3, 0, 1), s = Math.min(e * t * i * a, .1);
+				Kt.lerpVectors(X, Kt, s).normalize(), Z.setFromUnitVectors(X, Kt), makeRotateAroundPoint(n, Z, Ht), r.matrixWorld.premultiply(Ht), r.matrixWorld.decompose(r.position, r.quaternion, Kt), this.zoomDirection.subVectors(n, r.position).normalize();
 			}
 			super._updateZoom();
 		} else if (r.isPerspectiveCamera) {
@@ -1476,7 +1477,7 @@ var nn = .05, rn = .025, an = /* @__PURE__ */ new S(), on = /* @__PURE__ */ new 
 	}
 	_alignCameraUpToNorth(e) {
 		let { ellipsoidFrame: t } = this;
-		On.set(0, 0, 1).transformDirection(t), this._alignCameraUp(On, e);
+		Wt.set(0, 0, 1).transformDirection(t), this._alignCameraUp(Wt, e);
 	}
 	_tiltTowardsCenter(e) {
 		let { camera: t, ellipsoidFrame: n } = this;
@@ -1535,7 +1536,7 @@ var nn = .05, rn = .025, an = /* @__PURE__ */ new S(), on = /* @__PURE__ */ new 
 		let { ellipsoid: e, ellipsoidFrame: t } = this;
 		return Math.max(...e.radius) * t.getMaxScaleOnAxis();
 	}
-}, $ = /* @__PURE__ */ new T(), In = /* @__PURE__ */ new T(), Ln = /* @__PURE__ */ new re(), Rn = /* @__PURE__ */ new T(), zn = /* @__PURE__ */ new T(), Bn = /* @__PURE__ */ new T(), Vn = /* @__PURE__ */ new C(), Hn = /* @__PURE__ */ new C(), Un = class extends _ {
+}, $ = /* @__PURE__ */ new T(), Zt = /* @__PURE__ */ new T(), Qt = /* @__PURE__ */ new ie(), $t = /* @__PURE__ */ new T(), en = /* @__PURE__ */ new T(), tn = /* @__PURE__ */ new T(), nn = /* @__PURE__ */ new C(), rn = /* @__PURE__ */ new C(), CameraTransitionManager = class extends v {
 	get animating() {
 		return this._alpha !== 0 && this._alpha !== 1;
 	}
@@ -1557,8 +1558,8 @@ var nn = .05, rn = .025, an = /* @__PURE__ */ new S(), on = /* @__PURE__ */ new 
 			prevCamera: t
 		});
 	}
-	constructor(e = new ie(), t = new re()) {
-		super(), this.perspectiveCamera = e, this.orthographicCamera = t, this.transitionCamera = new ie(), this.orthographicPositionalZoom = !0, this.orthographicOffset = 50, this.fixedPoint = new T(), this.duration = 200, this.autoSync = !0, this.easeFunction = (e) => e, this._target = 0, this._alpha = 0, this._clock = new p();
+	constructor(e = new ae(), t = new ie()) {
+		super(), this.perspectiveCamera = e, this.orthographicCamera = t, this.transitionCamera = new ae(), this.orthographicPositionalZoom = !0, this.orthographicOffset = 50, this.fixedPoint = new T(), this.duration = 200, this.autoSync = !0, this.easeFunction = (e) => e, this._target = 0, this._alpha = 0, this._clock = new m();
 	}
 	toggle() {
 		this._target = this._target === 1 ? 0 : 1, this._clock.getDelta(), this.dispatchEvent({ type: "toggle" });
@@ -1585,13 +1586,13 @@ var nn = .05, rn = .025, an = /* @__PURE__ */ new S(), on = /* @__PURE__ */ new 
 		if ($.set(0, 0, -1).transformDirection(e.matrixWorld).normalize(), e.isPerspectiveCamera) {
 			if (this.orthographicPositionalZoom) n.position.copy(t.position).addScaledVector($, -this.orthographicOffset), n.rotation.copy(t.rotation), n.updateMatrixWorld();
 			else {
-				let e = In.subVectors(i, n.position).dot($), r = In.subVectors(i, t.position).dot($);
-				In.copy(t.position).addScaledVector($, r), n.rotation.copy(t.rotation), n.position.copy(In).addScaledVector($, -e), n.updateMatrixWorld();
+				let e = Zt.subVectors(i, n.position).dot($), r = Zt.subVectors(i, t.position).dot($);
+				Zt.copy(t.position).addScaledVector($, r), n.rotation.copy(t.rotation), n.position.copy(Zt).addScaledVector($, -e), n.updateMatrixWorld();
 			}
-			let e = Math.abs(In.subVectors(t.position, i).dot($)), r = 2 * Math.tan(x.DEG2RAD * t.fov * .5) * e;
+			let e = Math.abs(Zt.subVectors(t.position, i).dot($)), r = 2 * Math.tan(x.DEG2RAD * t.fov * .5) * e;
 			n.zoom = (n.top - n.bottom) / r, n.updateProjectionMatrix();
 		} else {
-			let e = Math.abs(In.subVectors(n.position, i).dot($)), r = (n.top - n.bottom) / n.zoom * .5 / Math.tan(x.DEG2RAD * t.fov * .5);
+			let e = Math.abs(Zt.subVectors(n.position, i).dot($)), r = (n.top - n.bottom) / n.zoom * .5 / Math.tan(x.DEG2RAD * t.fov * .5);
 			t.rotation.copy(n.rotation), t.position.copy(n.position).addScaledVector($, e).addScaledVector($, -r), t.updateMatrixWorld(), this.orthographicPositionalZoom && (n.position.copy(t.position).addScaledVector($, -this.orthographicOffset), n.updateMatrixWorld());
 		}
 		r.position.copy(t.position), r.rotation.copy(t.rotation);
@@ -1609,14 +1610,14 @@ var nn = .05, rn = .025, an = /* @__PURE__ */ new S(), on = /* @__PURE__ */ new 
 	}
 	_updateTransitionCamera() {
 		let { perspectiveCamera: e, orthographicCamera: t, transitionCamera: n, fixedPoint: r } = this, i = this.easeFunction(this._alpha);
-		$.set(0, 0, -1).transformDirection(t.matrixWorld).normalize(), Ln.copy(t), Ln.position.addScaledVector($, t.near), t.far -= t.near, t.near = 0, $.set(0, 0, -1).transformDirection(e.matrixWorld).normalize();
-		let a = Math.abs(In.subVectors(e.position, r).dot($)), o = 2 * Math.tan(x.DEG2RAD * e.fov * .5) * a, s = Hn.slerpQuaternions(e.quaternion, Ln.quaternion, i), c = x.lerp(e.fov, 1, i), l = o * .5 / Math.tan(x.DEG2RAD * c * .5), u = Bn.copy(Ln.position).sub(r).applyQuaternion(Vn.copy(Ln.quaternion).invert()), d = zn.copy(e.position).sub(r).applyQuaternion(Vn.copy(e.quaternion).invert()), f = Rn.lerpVectors(d, u, i);
+		$.set(0, 0, -1).transformDirection(t.matrixWorld).normalize(), Qt.copy(t), Qt.position.addScaledVector($, t.near), t.far -= t.near, t.near = 0, $.set(0, 0, -1).transformDirection(e.matrixWorld).normalize();
+		let a = Math.abs(Zt.subVectors(e.position, r).dot($)), o = 2 * Math.tan(x.DEG2RAD * e.fov * .5) * a, s = rn.slerpQuaternions(e.quaternion, Qt.quaternion, i), c = x.lerp(e.fov, 1, i), l = o * .5 / Math.tan(x.DEG2RAD * c * .5), u = tn.copy(Qt.position).sub(r).applyQuaternion(nn.copy(Qt.quaternion).invert()), d = en.copy(e.position).sub(r).applyQuaternion(nn.copy(e.quaternion).invert()), f = $t.lerpVectors(d, u, i);
 		f.z -= Math.abs(f.z) - l;
-		let p = -(d.z - f.z), m = -(u.z - f.z), h = x.lerp(p + e.near, m + Ln.near, i), g = x.lerp(p + e.far, m + Ln.far, i), _ = Math.max(g, 0) - Math.max(h, 0);
+		let p = -(d.z - f.z), m = -(u.z - f.z), h = x.lerp(p + e.near, m + Qt.near, i), g = x.lerp(p + e.far, m + Qt.far, i), _ = Math.max(g, 0) - Math.max(h, 0);
 		n.aspect = e.aspect, n.fov = c, n.near = Math.max(h, _ * 1e-5), n.far = g, n.position.copy(f).applyQuaternion(s).add(r), n.quaternion.copy(s), n.updateProjectionMatrix(), n.updateMatrixWorld();
 	}
 };
 //#endregion
-export { Se as _, Ft as a, yt as c, Je as d, Ge as f, Ce as g, Ke as h, qt as i, lt as l, qe as m, Fn as n, Rt as o, We as p, wn as r, Ot as s, Un as t, ct as u, _e as v };
+export { B3DMLoader, Fe as CAMERA_FRAME, CMPTLoader, CameraTransitionManager, Pe as ENU_FRAME, Ellipsoid, EllipsoidRegion, EnvironmentControls, be as GeoUtils_exports, GlobeControls, I3DMLoader, ut as MemoryUtils_exports, OBB, Ie as OBJECT_FRAME, PNTSLoader, TilesRenderer, Le as WGS84_ELLIPSOID, getTextureByteLength };
 
-//# sourceMappingURL=renderer-Dg5CPeDN.js.map
+//# sourceMappingURL=renderer-CrROfuUq.js.map

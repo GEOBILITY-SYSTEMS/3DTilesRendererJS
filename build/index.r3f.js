@@ -1,34 +1,34 @@
-import { A as e } from "./renderer-DeQJfJ4K.js";
-import { d as t, i as n, m as r, n as i, r as a, t as o } from "./renderer-Dg5CPeDN.js";
+import { Scheduler as e } from "./renderer-BcKWXcM-.js";
+import { CameraTransitionManager as t, Ellipsoid as n, EnvironmentControls as r, GlobeControls as i, TilesRenderer as a, WGS84_ELLIPSOID as o } from "./renderer-CrROfuUq.js";
 import { BackSide as s, EventDispatcher as c, Line3 as l, Matrix4 as u, Object3D as d, OrthographicCamera as f, Ray as p, Raycaster as m, Scene as h, Vector2 as g, Vector3 as _ } from "three";
 import { StrictMode as v, cloneElement as y, createContext as b, forwardRef as x, useCallback as S, useContext as C, useEffect as w, useLayoutEffect as T, useMemo as E, useReducer as ee, useRef as D, useState as O } from "react";
 import { createPortal as te, useFrame as k, useThree as A } from "@react-three/fiber";
 import { Fragment as j, jsx as M, jsxs as N } from "react/jsx-runtime";
 import { createRoot as ne } from "react-dom/client";
 //#region src/r3f/utilities/useObjectDep.js
-function re(e, t) {
+function areObjectsEqual(e, t) {
 	if (e === t) return !0;
 	if (!e || !t) return e === t;
 	for (let n in e) if (e[n] !== t[n]) return !1;
 	for (let n in t) if (e[n] !== t[n]) return !1;
 	return !0;
 }
-function P(e) {
+function useObjectDep(e) {
 	let t = D();
-	return re(t.current, e) || (t.current = e), t.current;
+	return areObjectsEqual(t.current, e) || (t.current = e), t.current;
 }
 //#endregion
 //#region src/r3f/utilities/useOptions.js
-function ie(e) {
+function isEventName(e) {
 	return /^on/g.test(e);
 }
-function ae(e) {
+function getEventName(e) {
 	return e.replace(/^on/, "").replace(/[a-z][A-Z]/g, (e) => `${e[0]}-${e[1]}`).toLowerCase();
 }
-function oe(e) {
+function getPath(e) {
 	return e.split("-");
 }
-function se(e, t) {
+function getValueAtPath(e, t) {
 	let n = e, r = [...t];
 	for (; r.length !== 0;) {
 		let e = r.shift();
@@ -36,33 +36,33 @@ function se(e, t) {
 	}
 	return n;
 }
-function ce(e, t, n) {
+function setValueAtPath(e, t, n) {
 	let r = [...t], i = r.pop();
-	se(e, r)[i] = n;
+	getValueAtPath(e, r)[i] = n;
 }
-function F(e, t, n = !1) {
+function useDeepOptions(e, t, n = !1) {
 	T(() => {
 		if (e === null) return;
 		let r = {}, i = {};
-		for (let a in t) if (ie(a) && e.addEventListener && !(a in e)) {
-			let n = ae(a);
+		for (let a in t) if (isEventName(a) && e.addEventListener && !(a in e)) {
+			let n = getEventName(a);
 			i[n] = t[a], e.addEventListener(n, t[a]);
 		} else {
-			let i = n ? [a] : oe(a);
-			r[a] = se(e, i), ce(e, i, t[a]);
+			let i = n ? [a] : getPath(a);
+			r[a] = getValueAtPath(e, i), setValueAtPath(e, i, t[a]);
 		}
 		return () => {
 			for (let t in i) e.removeEventListener(t, i[t]);
-			for (let t in r) ce(e, n ? [t] : oe(t), r[t]);
+			for (let t in r) setValueAtPath(e, n ? [t] : getPath(t), r[t]);
 		};
-	}, [e, P(t)]);
+	}, [e, useObjectDep(t)]);
 }
-function le(e, t) {
-	F(e, t, !0);
+function useShallowOptions(e, t) {
+	useDeepOptions(e, t, !0);
 }
 //#endregion
 //#region src/r3f/utilities/useApplyRefs.js
-function I(e, ...t) {
+function useApplyRefs(e, ...t) {
 	w(() => {
 		t.forEach((t) => {
 			t && (t instanceof Function ? t(e) : t.current = e);
@@ -71,9 +71,9 @@ function I(e, ...t) {
 }
 //#endregion
 //#region src/r3f/components/TilesRenderer.jsx
-var L = b(null), ue = b(null), R = b(null);
-function de({ children: e }) {
-	let t = C(L), n = D();
+var P = b(null), F = b(null), I = b(null);
+function TileSetRoot({ children: e }) {
+	let t = C(P), n = D();
 	return w(() => {
 		t && (n.current.matrixWorld = t.group.matrixWorld);
 	}, [t]), /* @__PURE__ */ M("group", {
@@ -83,23 +83,23 @@ function de({ children: e }) {
 		children: e
 	});
 }
-function fe(e) {
-	let { lat: n = 0, lon: r = 0, height: i = 0, az: a = 0, el: o = 0, roll: s = 0, ellipsoid: c = t.clone(), children: l } = e, u = C(L), f = A((e) => e.invalidate), [p, m] = O(null), h = S(() => {
+function EastNorthUpFrame(e) {
+	let { lat: t = 0, lon: n = 0, height: r = 0, az: i = 0, el: a = 0, roll: s = 0, ellipsoid: c = o.clone(), children: l } = e, u = C(P), f = A((e) => e.invalidate), [p, m] = O(null), h = S(() => {
 		if (p === null) return;
 		let e = u && u.ellipsoid || c || null;
-		p.matrix.identity(), p.visible = !!(u && u.root || c), e !== null && (e.getOrientedEastNorthUpFrame(n, r, i, a, o, s, p.matrix), p.matrix.decompose(p.position, p.quaternion, p.scale), p.updateMatrixWorld(), f());
+		p.matrix.identity(), p.visible = !!(u && u.root || c), e !== null && (e.getOrientedEastNorthUpFrame(t, n, r, i, a, s, p.matrix), p.matrix.decompose(p.position, p.quaternion, p.scale), p.updateMatrixWorld(), f());
 	}, [
 		f,
 		u,
+		t,
 		n,
 		r,
 		i,
 		a,
-		o,
 		s,
 		c,
 		p,
-		P(c.radius)
+		useObjectDep(c.radius)
 	]);
 	return w(() => {
 		if (u !== null && p !== null) return p.updateMatrixWorld = function(e) {
@@ -120,8 +120,8 @@ function fe(e) {
 		children: l
 	});
 }
-var pe = x(function(e, t) {
-	let { plugin: n, args: r, children: i, ...a } = e, o = C(L), [s, c] = O(null), [, l] = ee((e) => e + 1, 0);
+var re = x(function TilesPlugin(e, t) {
+	let { plugin: n, args: r, children: i, ...a } = e, o = C(P), [s, c] = O(null), [, l] = ee((e) => e + 1, 0);
 	if (T(() => {
 		if (o === null) return;
 		let e;
@@ -131,48 +131,48 @@ var pe = x(function(e, t) {
 	}, [
 		n,
 		o,
-		P(r)
-	]), F(s, a), T(() => {
+		useObjectDep(r)
+	]), useDeepOptions(s, a), T(() => {
 		if (s !== null) return o.registerPlugin(s), l(), () => {
 			o.unregisterPlugin(s);
 		};
-	}, [s]), I(s, t), !(!s || !o.plugins.includes(s))) return /* @__PURE__ */ M(ue.Provider, {
+	}, [s]), useApplyRefs(s, t), !(!s || !o.plugins.includes(s))) return /* @__PURE__ */ M(F.Provider, {
 		value: s,
 		children: i
 	});
-}), me = x(function(e, t) {
-	let { url: r, group: i = {}, enabled: a = !0, children: o, ...s } = e, [c, l, u] = A((e) => [
+}), ie = x(function TilesRenderer(e, t) {
+	let { url: n, group: r = {}, enabled: i = !0, children: o, ...s } = e, [c, l, u] = A((e) => [
 		e.camera,
 		e.gl,
 		e.invalidate
 	]), [d, f] = O(null);
 	w(() => {
-		let e = () => u(), t = new n(r);
-		return t.addEventListener("needs-render", e), t.addEventListener("needs-update", e), f(t), () => {
-			t.removeEventListener("needs-render", e), t.removeEventListener("needs-update", e), t.dispose(), f(null);
+		let needsRender = () => u(), e = new a(n);
+		return e.addEventListener("needs-render", needsRender), e.addEventListener("needs-update", needsRender), f(e), () => {
+			e.removeEventListener("needs-render", needsRender), e.removeEventListener("needs-update", needsRender), e.dispose(), f(null);
 		};
-	}, [r, u]), k(() => {
-		d === null || !a || (c.updateMatrixWorld(), d.setResolutionFromRenderer(c, l), d.update());
+	}, [n, u]), k(() => {
+		d === null || !i || (c.updateMatrixWorld(), d.setResolutionFromRenderer(c, l), d.update());
 	}), T(() => {
 		if (d !== null) return d.setCamera(c), () => {
 			d.deleteCamera(c);
 		};
-	}, [d, c]), I(d, t), F(d, s);
+	}, [d, c]), useApplyRefs(d, t), useDeepOptions(d, s);
 	let p = E(() => d ? {
 		ellipsoid: d.ellipsoid,
 		frame: d.group
 	} : null, [d?.ellipsoid, d?.group]);
 	return d ? /* @__PURE__ */ N(j, { children: [/* @__PURE__ */ M("primitive", {
 		object: d.group,
-		...i
-	}), /* @__PURE__ */ M(L.Provider, {
+		...r
+	}), /* @__PURE__ */ M(P.Provider, {
 		value: d,
-		children: /* @__PURE__ */ M(R.Provider, {
+		children: /* @__PURE__ */ M(I.Provider, {
 			value: p,
-			children: /* @__PURE__ */ M(de, { children: o })
+			children: /* @__PURE__ */ M(TileSetRoot, { children: o })
 		})
 	})] }) : null;
-}), he = x(function({ children: e, ...t }, n) {
+}), L = x(function CanvasDOMOverlay({ children: e, ...t }, n) {
 	let [r] = A((e) => [e.gl]), [i, a] = O(null), o = E(() => document.createElement("div"), []);
 	w(() => (o.style.pointerEvents = "none", o.style.position = "absolute", o.style.width = "100%", o.style.height = "100%", o.style.left = 0, o.style.top = 0, r.domElement.parentNode.appendChild(o), () => {
 		o.remove();
@@ -189,23 +189,23 @@ var pe = x(function(e, t) {
 });
 //#endregion
 //#region src/r3f/components/TilesAttributionOverlay.jsx
-function ge() {
+function randomID() {
 	return crypto.getRandomValues(new Uint32Array(1))[0].toString(16);
 }
-function _e({ children: e, style: t, generateAttributions: n, ...r }) {
-	let i = C(L), [a, o] = O([]);
+function TilesAttributionOverlay({ children: e, style: t, generateAttributions: n, ...r }) {
+	let i = C(P), [a, o] = O([]);
 	w(() => {
 		if (!i) return;
-		let e = !1, t = () => {
+		let e = !1, callback = () => {
 			e || (e = !0, queueMicrotask(() => {
 				o(i.getAttributions()), e = !1;
 			}));
 		};
-		return i.addEventListener("tile-visibility-change", t), i.addEventListener("load-tileset", t), () => {
-			i.removeEventListener("tile-visibility-change", t), i.removeEventListener("load-tileset", t);
+		return i.addEventListener("tile-visibility-change", callback), i.addEventListener("load-tileset", callback), () => {
+			i.removeEventListener("tile-visibility-change", callback), i.removeEventListener("load-tileset", callback);
 		};
 	}, [i]);
-	let s = E(() => "class_" + ge(), []), c = E(() => `
+	let s = E(() => "class_" + randomID(), []), c = E(() => `
 		#${s} a {
 			color: white;
 		}
@@ -227,7 +227,7 @@ function _e({ children: e, style: t, generateAttributions: n, ...r }) {
 			}, n) : t.type === "image" && (r = /* @__PURE__ */ M("div", { children: /* @__PURE__ */ M("img", { src: t.value }) }, n)), r && e.push(r);
 		}), l = /* @__PURE__ */ N(j, { children: [/* @__PURE__ */ M("style", { children: c }), e] });
 	}
-	return /* @__PURE__ */ N(he, {
+	return /* @__PURE__ */ N(L, {
 		id: s,
 		style: {
 			position: "absolute",
@@ -244,12 +244,12 @@ function _e({ children: e, style: t, generateAttributions: n, ...r }) {
 }
 //#endregion
 //#region src/r3f/components/CameraControls.jsx
-var ve = x(function(e, t) {
-	let { controlsConstructor: n, domElement: r, scene: i, camera: a, ellipsoid: o, ellipsoidFrame: s, ...c } = e, [l] = A((e) => [e.camera]), [u] = A((e) => [e.gl]), [d] = A((e) => [e.scene]), [f] = A((e) => [e.invalidate]), [p] = A((e) => [e.get]), [m] = A((e) => [e.set]), h = C(R), g = a || l || null, _ = i || d || null, v = r || u.domElement || null, y = o || h?.ellipsoid || null, b = s || h?.frame || null, x = E(() => new n(), [n]);
-	I(x, t), w(() => {
-		let e = () => f();
-		return x.addEventListener("change", e), x.addEventListener("start", e), x.addEventListener("end", e), () => {
-			x.removeEventListener("change", e), x.removeEventListener("start", e), x.removeEventListener("end", e);
+var R = x(function ControlsBaseComponent(e, t) {
+	let { controlsConstructor: n, domElement: r, scene: i, camera: a, ellipsoid: o, ellipsoidFrame: s, ...c } = e, [l] = A((e) => [e.camera]), [u] = A((e) => [e.gl]), [d] = A((e) => [e.scene]), [f] = A((e) => [e.invalidate]), [p] = A((e) => [e.get]), [m] = A((e) => [e.set]), h = C(I), g = a || l || null, _ = i || d || null, v = r || u.domElement || null, y = o || h?.ellipsoid || null, b = s || h?.frame || null, x = E(() => new n(), [n]);
+	useApplyRefs(x, t), w(() => {
+		let callback = () => f();
+		return x.addEventListener("change", callback), x.addEventListener("start", callback), x.addEventListener("end", callback), () => {
+			x.removeEventListener("change", callback), x.removeEventListener("start", callback), x.removeEventListener("end", callback);
 		};
 	}, [x, f]), w(() => {
 		x.setCamera(g);
@@ -272,26 +272,26 @@ var ve = x(function(e, t) {
 		m
 	]), k(() => {
 		x.update();
-	}, -1), le(x, c);
-}), ye = x(function(e, t) {
-	return /* @__PURE__ */ M(ve, {
+	}, -1), useShallowOptions(x, c);
+}), ae = x(function EnvironmentControls(e, t) {
+	return /* @__PURE__ */ M(R, {
 		...e,
 		ref: t,
-		controlsConstructor: a
+		controlsConstructor: r
 	});
-}), be = x(function(e, t) {
-	return /* @__PURE__ */ M(ve, {
+}), oe = x(function GlobeControls(e, t) {
+	return /* @__PURE__ */ M(R, {
 		...e,
 		ref: t,
 		controlsConstructor: i
 	});
 }), z = /*@__PURE__*/ new _(), B = /*@__PURE__*/ new _(), V = /*@__PURE__*/ new _(), H = /*@__PURE__*/ new u(), U = /*@__PURE__*/ new u(), W = /*@__PURE__*/ new p(), G = {};
-function xe(e, t, n, r) {
+function getCameraFocusPoint(e, t, n, r) {
 	W.origin.copy(e.position), W.direction.set(0, 0, -1).transformDirection(e.matrixWorld), W.applyMatrix4(n.matrixWorldInverse), t.closestPointToRayEstimate(W, V), V.applyMatrix4(n.matrixWorld), B.set(0, 0, -1).transformDirection(e.matrixWorld);
 	let i = V.sub(e.position).dot(B);
 	return r.copy(e.position).addScaledVector(B, i), r;
 }
-function Se(e) {
+function RenderPortal(e) {
 	let { defaultScene: t, defaultCamera: n, overrideRenderLoop: r = !0, renderPriority: i = 1 } = e, a = E(() => new f(), []), [o, s, c, l] = A((e) => [
 		e.set,
 		e.size,
@@ -308,14 +308,14 @@ function Se(e) {
 		c.autoClear = !1, c.clearDepth(), c.render(l, a), c.autoClear = e;
 	}, i);
 }
-function Ce() {
+function TriangleGeometry() {
 	let e = D();
 	return w(() => {
 		let t = e.current.attributes.position;
 		for (let e = 0, n = t.count; e < n; e++) z.fromBufferAttribute(t, e), z.y > 0 && (z.x = 0, t.setXYZ(e, ...z));
 	}), /* @__PURE__ */ M("boxGeometry", { ref: e });
 }
-function we({ northColor: e = 15684432, southColor: t = 16777215 }) {
+function CompassGraphic({ northColor: e = 15684432, southColor: t = 16777215 }) {
 	let [n, r] = O(), i = D();
 	return w(() => {
 		r(i.current);
@@ -356,33 +356,33 @@ function we({ northColor: e = 15684432, southColor: t = 16777215 }) {
 				],
 				children: [/* @__PURE__ */ N("mesh", {
 					"position-y": .5,
-					children: [/* @__PURE__ */ M(Ce, {}), /* @__PURE__ */ M("meshStandardMaterial", { color: e })]
+					children: [/* @__PURE__ */ M(TriangleGeometry, {}), /* @__PURE__ */ M("meshStandardMaterial", { color: e })]
 				}), /* @__PURE__ */ N("mesh", {
 					"position-y": -.5,
 					"rotation-x": Math.PI,
-					children: [/* @__PURE__ */ M(Ce, {}), /* @__PURE__ */ M("meshStandardMaterial", { color: t })]
+					children: [/* @__PURE__ */ M(TriangleGeometry, {}), /* @__PURE__ */ M("meshStandardMaterial", { color: t })]
 				})]
 			})
 		]
 	});
 }
-function Te({ children: e, overrideRenderLoop: t, mode: n = "3d", margin: r = 10, scale: i = 35, visible: a = !0, ...o }) {
+function CompassGizmo({ children: e, overrideRenderLoop: t, mode: n = "3d", margin: r = 10, scale: i = 35, visible: a = !0, ...o }) {
 	let [s, c, l] = A((e) => [
 		e.camera,
 		e.scene,
 		e.size
-	]), u = C(R), d = D(null), f = E(() => new h(), []), p, m;
+	]), u = C(I), d = D(null), f = E(() => new h(), []), p, m;
 	return Array.isArray(r) ? (p = r[0], m = r[1]) : (p = r, m = r), k(() => {
 		let e = u?.ellipsoid, t = u?.frame;
 		if (!e || !t || d.current === null) return null;
 		let r = d.current;
-		if (xe(s, e, t, V).applyMatrix4(t.matrixWorldInverse), e.getPositionToCartographic(V, G), e.getEastNorthUpFrame(G.lat, G.lon, 0, U).premultiply(t.matrixWorld), U.invert(), H.copy(s.matrixWorld).premultiply(U), n.toLowerCase() === "3d") r.quaternion.setFromRotationMatrix(H).invert();
+		if (getCameraFocusPoint(s, e, t, V).applyMatrix4(t.matrixWorldInverse), e.getPositionToCartographic(V, G), e.getEastNorthUpFrame(G.lat, G.lon, 0, U).premultiply(t.matrixWorld), U.invert(), H.copy(s.matrixWorld).premultiply(U), n.toLowerCase() === "3d") r.quaternion.setFromRotationMatrix(H).invert();
 		else if (z.set(0, 1, 0).transformDirection(H).normalize(), z.z = 0, z.normalize(), z.length() === 0) r.quaternion.identity();
 		else {
 			let e = B.set(0, 1, 0).angleTo(z);
 			B.cross(z).normalize(), r.quaternion.setFromAxisAngle(B, -e);
 		}
-	}), e ||= /* @__PURE__ */ M(we, {}), a ? te(/* @__PURE__ */ N(j, { children: [/* @__PURE__ */ M("group", {
+	}), e ||= /* @__PURE__ */ M(CompassGraphic, {}), a ? te(/* @__PURE__ */ N(j, { children: [/* @__PURE__ */ M("group", {
 		ref: d,
 		scale: i,
 		position: [
@@ -392,7 +392,7 @@ function Te({ children: e, overrideRenderLoop: t, mode: n = "3d", margin: r = 10
 		],
 		...o,
 		children: e
-	}), /* @__PURE__ */ M(Se, {
+	}), /* @__PURE__ */ M(RenderPortal, {
 		defaultCamera: s,
 		defaultScene: c,
 		overrideRenderLoop: t,
@@ -401,8 +401,8 @@ function Te({ children: e, overrideRenderLoop: t, mode: n = "3d", margin: r = 10
 }
 //#endregion
 //#region src/r3f/components/CameraTransition.jsx
-var Ee = x(function(e, t) {
-	let { mode: n = "perspective", onBeforeToggle: r, perspectiveCamera: i, orthographicCamera: a, ...s } = e, [c, l, u, d, f, p] = A((e) => [
+var se = x(function CameraTransition(e, n) {
+	let { mode: r = "perspective", onBeforeToggle: i, perspectiveCamera: a, orthographicCamera: o, ...s } = e, [c, l, u, d, f, p] = A((e) => [
 		e.set,
 		e.get,
 		e.invalidate,
@@ -410,49 +410,49 @@ var Ee = x(function(e, t) {
 		e.camera,
 		e.size
 	]), m = E(() => {
-		let e = new o();
-		return e.autoSync = !1, f.isOrthographicCamera ? (e.orthographicCamera.copy(f), e.mode = "orthographic") : e.perspectiveCamera.copy(f), e.syncCameras(), e.mode = n, e;
+		let e = new t();
+		return e.autoSync = !1, f.isOrthographicCamera ? (e.orthographicCamera.copy(f), e.mode = "orthographic") : e.perspectiveCamera.copy(f), e.syncCameras(), e.mode = r, e;
 	}, []);
 	w(() => {
 		let { perspectiveCamera: e, orthographicCamera: t } = m, n = p.width / p.height;
 		e.aspect = n, e.updateProjectionMatrix(), t.left = -t.top * n, t.right = -t.left, e.updateProjectionMatrix();
-	}, [m, p]), I(m, t), w(() => {
-		let e = ({ camera: e }) => {
+	}, [m, p]), useApplyRefs(m, n), w(() => {
+		let cameraCallback = ({ camera: e }) => {
 			c(() => ({ camera: e }));
 		};
-		return c(() => ({ camera: m.camera })), m.addEventListener("camera-change", e), () => {
-			m.removeEventListener("camera-change", e);
+		return c(() => ({ camera: m.camera })), m.addEventListener("camera-change", cameraCallback), () => {
+			m.removeEventListener("camera-change", cameraCallback);
 		};
 	}, [m, c]), w(() => {
 		let e = m.perspectiveCamera, t = m.orthographicCamera;
-		return m.perspectiveCamera = i || e, m.orthographicCamera = a || t, c(() => ({ camera: m.camera })), () => {
+		return m.perspectiveCamera = a || e, m.orthographicCamera = o || t, c(() => ({ camera: m.camera })), () => {
 			m.perspectiveCamera = e, m.orthographicCamera = t;
 		};
 	}, [
-		i,
 		a,
+		o,
 		m,
 		c
 	]), w(() => {
-		if (n !== m.mode) {
-			let e = n === "orthographic" ? m.orthographicCamera : m.perspectiveCamera;
-			r ? r(m, e) : d && d.isEnvironmentControls ? (d.getPivotPoint(m.fixedPoint), m.syncCameras(), d.adjustCamera(m.perspectiveCamera), d.adjustCamera(m.orthographicCamera)) : (m.fixedPoint.set(0, 0, -1).transformDirection(m.camera.matrixWorld).multiplyScalar(50).add(m.camera.position), m.syncCameras()), m.toggle(), u();
+		if (r !== m.mode) {
+			let e = r === "orthographic" ? m.orthographicCamera : m.perspectiveCamera;
+			i ? i(m, e) : d && d.isEnvironmentControls ? (d.getPivotPoint(m.fixedPoint), m.syncCameras(), d.adjustCamera(m.perspectiveCamera), d.adjustCamera(m.orthographicCamera)) : (m.fixedPoint.set(0, 0, -1).transformDirection(m.camera.matrixWorld).multiplyScalar(50).add(m.camera.position), m.syncCameras()), m.toggle(), u();
 		}
 	}, [
-		n,
+		r,
 		m,
 		u,
 		d,
-		r
+		i
 	]), w(() => {
-		let e = () => u();
-		return m.addEventListener("transition-start", e), m.addEventListener("change", e), m.addEventListener("transition-end", e), () => {
-			m.removeEventListener("transition-start", e), m.removeEventListener("change", e), m.removeEventListener("transition-end", e);
+		let callback = () => u();
+		return m.addEventListener("transition-start", callback), m.addEventListener("change", callback), m.addEventListener("transition-end", callback), () => {
+			m.removeEventListener("transition-start", callback), m.removeEventListener("change", callback), m.removeEventListener("transition-end", callback);
 		};
-	}, [m, u]), F(m, s), k(() => {
+	}, [m, u]), useDeepOptions(m, s), k(() => {
 		m.update(), d && (d.enabled = !m.animating);
 		let { camera: e, size: t } = l();
-		if (!a && e === m.orthographicCamera) {
+		if (!o && e === m.orthographicCamera) {
 			let e = t.width / t.height, n = m.orthographicCamera;
 			e !== n.right && (n.bottom = -1, n.top = 1, n.left = -e, n.right = e, n.updateProjectionMatrix());
 		}
@@ -461,7 +461,7 @@ var Ee = x(function(e, t) {
 });
 //#endregion
 //#region src/r3f/utilities/useMultipleRefs.js
-function De(...e) {
+function useMultipleRefs(...e) {
 	return S((t) => {
 		e.forEach((e) => {
 			e && (typeof e == "function" ? e(t) : e.current = t);
@@ -470,20 +470,20 @@ function De(...e) {
 }
 //#endregion
 //#region src/r3f/utilities/SceneObserver.js
-function K(e, t) {
+function traverse(e, t) {
 	t(e) || e.children.forEach((e) => {
-		K(e, t);
+		traverse(e, t);
 	});
 }
-var Oe = class extends c {
+var SceneObserver = class extends c {
 	constructor() {
 		super(), this.objects = /* @__PURE__ */ new Set(), this.observed = /* @__PURE__ */ new Set(), this._addedCallback = ({ child: e }) => {
-			K(e, (t) => this.observed.has(t) ? !0 : (this.objects.add(t), t.addEventListener("childadded", this._addedCallback), t.addEventListener("childremoved", this._removedCallback), this.dispatchEvent({
+			traverse(e, (t) => this.observed.has(t) ? !0 : (this.objects.add(t), t.addEventListener("childadded", this._addedCallback), t.addEventListener("childremoved", this._removedCallback), this.dispatchEvent({
 				type: "childadded",
 				child: e
 			}), !1));
 		}, this._removedCallback = ({ child: e }) => {
-			K(e, (t) => this.observed.has(t) ? !0 : (this.objects.delete(t), t.removeEventListener("childadded", this._addedCallback), t.removeEventListener("childremoved", this._removedCallback), this.dispatchEvent({
+			traverse(e, (t) => this.observed.has(t) ? !0 : (this.objects.delete(t), t.removeEventListener("childadded", this._addedCallback), t.removeEventListener("childremoved", this._removedCallback), this.dispatchEvent({
 				type: "childremoved",
 				child: e
 			}), !1));
@@ -502,9 +502,9 @@ var Oe = class extends c {
 			this.unobserve(e);
 		});
 	}
-}, q = /* @__PURE__ */ new m(), J = /* @__PURE__ */ new l(), Y = /* @__PURE__ */ new l(), ke = /* @__PURE__ */ new g(), X = /* @__PURE__ */ new _(), Ae = /* @__PURE__ */ new u(), je = class extends c {
+}, K = /* @__PURE__ */ new m(), q = /* @__PURE__ */ new l(), J = /* @__PURE__ */ new l(), Y = /* @__PURE__ */ new g(), X = /* @__PURE__ */ new _(), ce = /* @__PURE__ */ new u(), QueryManager = class extends c {
 	constructor() {
-		super(), this.autoRun = !0, this.queryMap = /* @__PURE__ */ new Map(), this.index = 0, this.queued = [], this.scheduled = !1, this.duration = 1, this.objects = [], this.observer = new Oe(), this.ellipsoid = new r(), this.frame = new u(), this.cameras = /* @__PURE__ */ new Set();
+		super(), this.autoRun = !0, this.queryMap = /* @__PURE__ */ new Map(), this.index = 0, this.queued = [], this.scheduled = !1, this.duration = 1, this.objects = [], this.observer = new SceneObserver(), this.ellipsoid = new n(), this.frame = new u(), this.cameras = /* @__PURE__ */ new Set();
 		let e = (() => {
 			let e = !1;
 			return () => {
@@ -521,13 +521,13 @@ var Oe = class extends c {
 	_runJobs() {
 		let { queued: e, cameras: t, duration: n } = this, r = performance.now();
 		for (t.forEach((t, n) => {
-			Ae.copy(t.matrixWorldInverse).premultiply(t.projectionMatrix), X.set(0, 0, -1).transformDirection(t.matrixWorld), J.start.setFromMatrixPosition(t.matrixWorld), J.end.addVectors(X, J.start);
+			ce.copy(t.matrixWorldInverse).premultiply(t.projectionMatrix), X.set(0, 0, -1).transformDirection(t.matrixWorld), q.start.setFromMatrixPosition(t.matrixWorld), q.end.addVectors(X, q.start);
 			for (let t = 0, r = e.length; t < r; t++) {
 				let r = e[t], { ray: i } = r;
-				if (r.point === null) Y.start.copy(i.origin), i.at(1, Y.end), Me(J, Y, ke), r.distance = ke.x * (1 - Math.abs(X.dot(i.direction))), r.inFrustum = !0;
+				if (r.point === null) J.start.copy(i.origin), i.at(1, J.end), le(q, J, Y), r.distance = Y.x * (1 - Math.abs(X.dot(i.direction))), r.inFrustum = !0;
 				else {
-					let e = Y.start;
-					e.copy(r.point).applyMatrix4(Ae), e.x > -1 && e.x < 1 && e.y > -1 && e.y < 1 && e.z > -1 && e.z < 1 ? (r.distance = e.subVectors(r.point, J.start).dot(X), r.inFrustum = !0) : (r.distance = 0, r.inFrustum = !1);
+					let e = J.start;
+					e.copy(r.point).applyMatrix4(ce), e.x > -1 && e.x < 1 && e.y > -1 && e.y < 1 && e.z > -1 && e.z < 1 ? (r.distance = e.subVectors(r.point, q.start).dot(X), r.inFrustum = !0) : (r.distance = 0, r.inFrustum = !1);
 				}
 				n === 0 ? (r.distance = void 0, r.inFrustum = void 0) : (r.inFrustum = r.inFrustum || void 0, r.distance = Math.min(r.distance, void 0));
 			}
@@ -543,8 +543,8 @@ var Oe = class extends c {
 		}));
 	}
 	_updateQuery(e) {
-		q.ray.copy(e.ray), q.far = "lat" in e ? 1e4 + Math.max(...this.ellipsoid.radius) : Infinity;
-		let t = q.intersectObjects(this.objects)[0] || null;
+		K.ray.copy(e.ray), K.far = "lat" in e ? 1e4 + Math.max(...this.ellipsoid.radius) : Infinity;
+		let t = K.intersectObjects(this.objects)[0] || null;
 		t !== null && (e.point === null ? e.point = t.point.clone() : e.point.copy(t.point)), e.callback(t);
 	}
 	addCamera(e) {
@@ -604,16 +604,16 @@ var Oe = class extends c {
 	dispose() {
 		this.queryMap.clear(), this.queued.length = 0, this.objects.length = 0, this.observer.dispose();
 	}
-}, Me = (function() {
+}, le = (function() {
 	let e = new _(), t = new _(), n = new _();
-	return function(r, i, a) {
+	return function closestPointLineToLine(r, i, a) {
 		let o = r.start, s = e, c = i.start, l = t;
 		n.subVectors(o, c), e.subVectors(r.end, r.start), t.subVectors(i.end, i.start);
 		let u = n.dot(l), d = l.dot(s), f = l.dot(l), p = n.dot(s), m = s.dot(s) * f - d * d, h, g;
 		h = m === 0 ? 0 : (u * d - p * f) / m, g = (u + h * d) / f, a.x = h, a.y = g;
 	};
-})(), Z = b(null), Q = /* @__PURE__ */ new u(), $ = /* @__PURE__ */ new p(), Ne = x(function(e, t) {
-	let { interpolationFactor: n = .025, onQueryUpdate: r = null, ...i } = e, a = C(L), o = C(Z), s = A(({ invalidate: e }) => e), c = E(() => new _(), []), l = E(() => ({ value: !1 }), []), u = E(() => ({ value: !1 }), []), d = D(null), f = S((e) => {
+})(), Z = b(null), Q = /* @__PURE__ */ new u(), $ = /* @__PURE__ */ new p(), ue = x(function AnimatedSettledObject(e, t) {
+	let { interpolationFactor: n = .025, onQueryUpdate: r = null, ...i } = e, a = C(P), o = C(Z), s = A(({ invalidate: e }) => e), c = E(() => new _(), []), l = E(() => ({ value: !1 }), []), u = E(() => ({ value: !1 }), []), d = D(null), f = S((e) => {
 		if (a === null || e === null || d.current === null) return;
 		let { lat: t, lon: n, rayorigin: l, raydirection: f } = i;
 		t !== null && n !== null ? (c.copy(e.point), u.value = !0, o.ellipsoid.getObjectFrame(t, n, 0, 0, 0, 0, Q, 2).premultiply(a.group.matrixWorld), d.current.quaternion.setFromRotationMatrix(Q), s()) : l !== null && f !== null && (c.copy(e.point), u.value = !0, d.current.quaternion.identity(), s()), r && r(e);
@@ -632,24 +632,24 @@ var Oe = class extends c {
 			let e = 1 - 2 ** (-t / n);
 			d.current.position.distanceToSquared(c) > 1e-6 ? (d.current.position.lerp(c, n === 0 ? 1 : e), s()) : d.current.position.copy(c);
 		}
-	}), /* @__PURE__ */ M(Pe, {
-		ref: De(d, t),
+	}), /* @__PURE__ */ M(de, {
+		ref: useMultipleRefs(d, t),
 		onQueryUpdate: f,
 		...i
 	});
-}), Pe = x(function(e, t) {
-	let { component: n = /* @__PURE__ */ M("group", {}), lat: r = null, lon: i = null, rayorigin: a = null, raydirection: o = null, onQueryUpdate: s = null, ...c } = e, l = D(null), u = C(L), d = C(Z), f = A(({ invalidate: e }) => e);
+}), de = x(function SettledObject(e, t) {
+	let { component: n = /* @__PURE__ */ M("group", {}), lat: r = null, lon: i = null, rayorigin: a = null, raydirection: o = null, onQueryUpdate: s = null, ...c } = e, l = D(null), u = C(P), d = C(Z), f = A(({ invalidate: e }) => e);
 	return w(() => {
-		let e = (e) => {
+		let callback = (e) => {
 			s ? s(e) : u && e !== null && l.current !== null && (r !== null && i !== null ? (l.current.position.copy(e.point), d.ellipsoid.getObjectFrame(r, i, 0, 0, 0, 0, Q, 2).premultiply(u.group.matrixWorld), l.current.quaternion.setFromRotationMatrix(Q), f()) : a !== null && o !== null && (l.current.position.copy(e.point), l.current.quaternion.identity(), f()));
 		};
 		if (r !== null && i !== null) {
-			let t = d.registerLatLonQuery(r, i, e);
-			return () => d.unregisterQuery(t);
+			let e = d.registerLatLonQuery(r, i, callback);
+			return () => d.unregisterQuery(e);
 		} else if (a !== null && o !== null) {
 			$.origin.copy(a), $.direction.copy(o);
-			let t = d.registerRayQuery($, e);
-			return () => d.unregisterQuery(t);
+			let e = d.registerRayQuery($, callback);
+			return () => d.unregisterQuery(e);
 		}
 	}, [
 		r,
@@ -663,18 +663,18 @@ var Oe = class extends c {
 		s
 	]), y(n, {
 		...c,
-		ref: De(l, t),
+		ref: useMultipleRefs(l, t),
 		raycast: () => !1
 	});
-}), Fe = x(function(e, t) {
-	let n = A(({ scene: e }) => e), { scene: r = n, children: i, ...a } = e, o = C(L), s = E(() => new je(), []), c = A(({ camera: e }) => e);
-	return F(s, a), w(() => () => s.dispose(), [s]), w(() => {
+}), fe = x(function SettledObjects(e, t) {
+	let n = A(({ scene: e }) => e), { scene: r = n, children: i, ...a } = e, o = C(P), s = E(() => new QueryManager(), []), c = A(({ camera: e }) => e);
+	return useDeepOptions(s, a), w(() => () => s.dispose(), [s]), w(() => {
 		s.setScene(...Array.isArray(r) ? r : [r]);
 	}, [s, r]), w(() => {
 		s.addCamera(c);
 	}, [s, c]), k(() => {
 		o && s.setEllipsoidFromTilesRenderer(o);
-	}), I(s, t), /* @__PURE__ */ M(Z.Provider, {
+	}), useApplyRefs(s, t), /* @__PURE__ */ M(Z.Provider, {
 		value: s,
 		children: /* @__PURE__ */ M("group", {
 			matrixAutoUpdate: !1,
@@ -684,6 +684,6 @@ var Oe = class extends c {
 	});
 });
 //#endregion
-export { Ne as AnimatedSettledObject, Ee as CameraTransition, he as CanvasDOMOverlay, Te as CompassGizmo, fe as EastNorthUpFrame, R as EllipsoidContext, ye as EnvironmentControls, be as GlobeControls, Pe as SettledObject, Fe as SettledObjects, _e as TilesAttributionOverlay, pe as TilesPlugin, ue as TilesPluginContext, me as TilesRenderer, L as TilesRendererContext };
+export { ue as AnimatedSettledObject, se as CameraTransition, L as CanvasDOMOverlay, CompassGizmo, EastNorthUpFrame, I as EllipsoidContext, ae as EnvironmentControls, oe as GlobeControls, de as SettledObject, fe as SettledObjects, TilesAttributionOverlay, re as TilesPlugin, F as TilesPluginContext, ie as TilesRenderer, P as TilesRendererContext };
 
 //# sourceMappingURL=index.r3f.js.map

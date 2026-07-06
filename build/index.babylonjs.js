@@ -1,4 +1,4 @@
-import { c as e, d as t, f as n, i as r, m as i } from "./renderer-DeQJfJ4K.js";
+import { B3DMLoaderBase as e, LoaderBase as t, TilesRendererBase as n, getWorkingPath as r, readMagicBytes as i } from "./renderer-BcKWXcM-.js";
 import { TransformNode as a } from "@babylonjs/core/Meshes/transformNode";
 import { Matrix as o, Quaternion as s, Vector3 as c } from "@babylonjs/core/Maths/math.vector";
 import { Frustum as l } from "@babylonjs/core/Maths/math.frustum";
@@ -9,7 +9,7 @@ import "@babylonjs/loaders/glTF/2.0";
 import { BoundingSphere as p } from "@babylonjs/core/Culling/boundingSphere";
 import { BoundingBox as m } from "@babylonjs/core/Culling/boundingBox";
 //#region src/babylonjs/renderer/loaders/GLTFLoader.js
-var h = /* @__PURE__ */ o.Identity(), g = class extends e {
+var h = /* @__PURE__ */ o.Identity(), GLTFLoader = class extends t {
 	constructor(e) {
 		super(), this.scene = e, this.adjustmentTransform = o.Identity();
 	}
@@ -33,12 +33,12 @@ var h = /* @__PURE__ */ o.Identity(), g = class extends e {
 			metadata: l
 		};
 	}
-}, _ = class extends r {
+}, B3DMLoader = class extends e {
 	constructor(e) {
 		super(), this.scene = e, this.adjustmentTransform = o.Identity();
 	}
 	async parse(e, t) {
-		let n = super.parse(e), { scene: r, workingPath: i, fetchOptions: a, adjustmentTransform: o } = this, s = new g(r);
+		let n = super.parse(e), { scene: r, workingPath: i, fetchOptions: a, adjustmentTransform: o } = this, s = new GLTFLoader(r);
 		s.workingPath = i, s.fetchOptions = a, o && (s.adjustmentTransform = o);
 		let c = await s.parse(n.glbBytes, t, "glb"), l = c.scene;
 		return {
@@ -48,7 +48,7 @@ var h = /* @__PURE__ */ o.Identity(), g = class extends e {
 			metadata: c.metadata
 		};
 	}
-}, v = /* @__PURE__ */ new c(), y = class {
+}, g = /* @__PURE__ */ new c(), OBB = class {
 	constructor() {
 		this.min = new c(-1, -1, -1), this.max = new c(1, 1, 1), this.transform = o.Identity(), this.inverseTransform = o.Identity(), this.points = Array(8).fill(null).map(() => new c());
 	}
@@ -63,24 +63,24 @@ var h = /* @__PURE__ */ o.Identity(), g = class extends e {
 		return c.TransformCoordinatesToRef(e, a, t), t.x = Math.max(n.x, Math.min(r.x, t.x)), t.y = Math.max(n.y, Math.min(r.y, t.y)), t.z = Math.max(n.z, Math.min(r.z, t.z)), c.TransformCoordinatesToRef(t, i, t), t;
 	}
 	distanceToPoint(e) {
-		return this.clampPoint(e, v), c.Distance(v, e);
+		return this.clampPoint(e, g), c.Distance(g, e);
 	}
 	intersectsFrustum(e) {
 		return m.IsInFrustum(this.points, e);
 	}
-}, b = /* @__PURE__ */ new c(), x = /* @__PURE__ */ new c(), S = /* @__PURE__ */ new c(), C = /* @__PURE__ */ new c(), w = /* @__PURE__ */ new c(), T = class {
+}, _ = /* @__PURE__ */ new c(), v = /* @__PURE__ */ new c(), y = /* @__PURE__ */ new c(), b = /* @__PURE__ */ new c(), x = /* @__PURE__ */ new c(), TileBoundingVolume = class {
 	constructor() {
 		this.sphere = null, this.obb = null;
 	}
 	setSphereData(e, t, n, r, i) {
-		let a = new p(w, w), o = a.centerWorld.set(e, t, n);
-		c.TransformCoordinatesToRef(o, i, o), i.decompose(C, null, null), a.radiusWorld = r * Math.max(Math.abs(C.x), Math.abs(C.y), Math.abs(C.z)), this.sphere = a;
+		let a = new p(x, x), o = a.centerWorld.set(e, t, n);
+		c.TransformCoordinatesToRef(o, i, o), i.decompose(b, null, null), a.radiusWorld = r * Math.max(Math.abs(b.x), Math.abs(b.y), Math.abs(b.z)), this.sphere = a;
 	}
 	setObbData(e, t) {
-		let n = new y();
-		b.set(e[3], e[4], e[5]), x.set(e[6], e[7], e[8]), S.set(e[9], e[10], e[11]);
-		let r = b.length(), i = x.length(), a = S.length();
-		b.normalize(), x.normalize(), S.normalize(), r === 0 && c.CrossToRef(x, S, b), i === 0 && c.CrossToRef(b, S, x), a === 0 && c.CrossToRef(b, x, S), n.transform = o.FromValues(b.x, x.x, S.x, e[0], b.y, x.y, S.y, e[1], b.z, x.z, S.z, e[2], 0, 0, 0, 1).transpose().multiply(t), n.min.set(-r, -i, -a), n.max.set(r, i, a), n.update(), this.obb = n;
+		let n = new OBB();
+		_.set(e[3], e[4], e[5]), v.set(e[6], e[7], e[8]), y.set(e[9], e[10], e[11]);
+		let r = _.length(), i = v.length(), a = y.length();
+		_.normalize(), v.normalize(), y.normalize(), r === 0 && c.CrossToRef(v, y, _), i === 0 && c.CrossToRef(_, y, v), a === 0 && c.CrossToRef(_, v, y), n.transform = o.FromValues(_.x, v.x, y.x, e[0], _.y, v.y, y.y, e[1], _.z, v.z, y.z, e[2], 0, 0, 0, 1).transpose().multiply(t), n.min.set(-r, -i, -a), n.max.set(r, i, a), n.update(), this.obb = n;
 	}
 	distanceToPoint(e) {
 		let { sphere: t, obb: n } = this, r = -Infinity, i = -Infinity;
@@ -90,14 +90,14 @@ var h = /* @__PURE__ */ o.Identity(), g = class extends e {
 		let { sphere: t, obb: n } = this;
 		return t && !t.isInFrustum(e) || n && !n.intersectsFrustum(e) ? !1 : !!(t || n);
 	}
-}, E = /* @__PURE__ */ o.Identity(), D = /* @__PURE__ */ new c(), O = /* @__PURE__ */ [
+}, S = /* @__PURE__ */ o.Identity(), C = /* @__PURE__ */ new c(), w = /* @__PURE__ */ [
 	,
 	,
 	,
 	,
 	,
 	,
-].fill(null).map(() => new d(0, 0, 0, 0)), k = class extends i {
+].fill(null).map(() => new d(0, 0, 0, 0)), TilesRenderer = class extends n {
 	constructor(e, t) {
 		super(e), this.scene = t, this.group = new a("tiles-root", t), this.checkCollisions = !1, this._upRotationMatrix = o.Identity(), this._observables = /* @__PURE__ */ new Map();
 	}
@@ -130,21 +130,21 @@ var h = /* @__PURE__ */ o.Identity(), g = class extends e {
 		e.transform && o.FromValuesToRef(...e.transform, r), n && r.multiplyToRef(n.engineData.transform, r);
 		let i = o.Identity();
 		r.invertToRef(i);
-		let a = new T();
+		let a = new TileBoundingVolume();
 		"sphere" in e.boundingVolume && a.setSphereData(...e.boundingVolume.sphere, r), "box" in e.boundingVolume && a.setObbData(e.boundingVolume.box, r), e.engineData.transform = r, e.engineData.transformInverse = i, e.engineData.boundingVolume = a, e.engineData.active = !1, e.engineData.scene = null, e.engineData.container = null;
 	}
-	async parseTile(e, r, i, a, o) {
-		let s = r.engineData, c = this.scene, l = t(a), u = this.fetchOptions, d = s.transform, f = this._upRotationMatrix, p = null, m = (n(e) || i).toLowerCase();
+	async parseTile(e, t, n, a, o) {
+		let s = t.engineData, c = this.scene, l = r(a), u = this.fetchOptions, d = s.transform, f = this._upRotationMatrix, p = null, m = (i(e) || n).toLowerCase();
 		switch (m) {
 			case "b3dm": {
-				let t = new _(c);
+				let t = new B3DMLoader(c);
 				t.workingPath = l, t.fetchOptions = u, t.adjustmentTransform.copyFrom(f), p = await t.parse(e, a);
 				break;
 			}
 			case "gltf":
 			case "glb": {
-				let t = new g(c);
-				t.workingPath = l, t.fetchOptions = u, t.adjustmentTransform.copyFrom(f), p = await t.parse(e, a, i);
+				let t = new GLTFLoader(c);
+				t.workingPath = l, t.fetchOptions = u, t.adjustmentTransform.copyFrom(f), p = await t.parse(e, a, n);
 				break;
 			}
 			default: throw Error(`BabylonTilesRenderer: Content type "${m}" not supported.`);
@@ -175,8 +175,8 @@ var h = /* @__PURE__ */ o.Identity(), g = class extends e {
 			let e = 2 / d[0], t = 2 / d[5];
 			m = Math.max(t / u, e / s);
 		} else p = 2 / d[5] / u;
-		this.group.getWorldMatrix().invertToRef(E), c.TransformCoordinatesToRef(i.globalPosition, E, D), l.GetPlanesToRef(i.getTransformationMatrix(!0), O);
-		let h = O.map((e) => e.transform(E)), g = r.distanceToPoint(D), _;
+		this.group.getWorldMatrix().invertToRef(S), c.TransformCoordinatesToRef(i.globalPosition, S, C), l.GetPlanesToRef(i.getTransformationMatrix(!0), w);
+		let h = w.map((e) => e.transform(S)), g = r.distanceToPoint(C), _;
 		_ = f ? e.geometricError / m : g === 0 ? Infinity : e.geometricError / (g * p), t.inView = r.intersectsFrustum(h), t.error = _, t.distanceFromCamera = g;
 	}
 	dispose() {
@@ -184,6 +184,6 @@ var h = /* @__PURE__ */ o.Identity(), g = class extends e {
 	}
 };
 //#endregion
-export { k as TilesRenderer };
+export { TilesRenderer };
 
 //# sourceMappingURL=index.babylonjs.js.map
