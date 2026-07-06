@@ -30,11 +30,15 @@ export default ( { mode } ) => {
 			sourcemap: true,
 			outDir: './build/',
 			minify: true,
-			rollupOptions: {
-				external: ( p ) => {
+			rolldownOptions: {
+				external: p => {
 
 					return ! /^[./\\]/.test( p ) && ! /^3d-tiles-renderer/.test( p );
 
+				},
+				output: {
+					keepNames: true,
+					minifyInternalExports: false,
 				},
 			},
 			lib: {
