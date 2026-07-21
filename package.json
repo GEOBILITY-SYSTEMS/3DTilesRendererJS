@@ -27,34 +27,42 @@
   "exports": {
     ".": {
       "types": "./src/index.d.ts",
+      "module": "./src/index.js",
       "import": "./build/index.js"
     },
     "./plugins": {
       "types": "./src/plugins.d.ts",
+      "module": "./src/plugins.js",
       "import": "./build/index.plugins.js"
     },
     "./core": {
       "types": "./src/core/renderer/index.d.ts",
+      "module": "./src/core/renderer/index.js",
       "import": "./build/index.core.js"
     },
     "./three": {
       "types": "./src/three/renderer/index.d.ts",
+      "module": "./src/three/renderer/index.js",
       "import": "./build/index.three.js"
     },
     "./r3f": {
       "types": "./src/r3f/index.d.ts",
+      "module": "./src/r3f/index.jsx",
       "import": "./build/index.r3f.js"
     },
     "./babylonjs": {
       "types": "./src/babylonjs/renderer/index.d.ts",
+      "module": "./src/babylonjs/renderer/index.js",
       "import": "./build/index.babylonjs.js"
     },
     "./core/plugins": {
       "types": "./src/core/plugins/index.d.ts",
+      "module": "./src/core/plugins/index.js",
       "import": "./build/index.core-plugins.js"
     },
     "./three/plugins": {
       "types": "./src/three/plugins/index.d.ts",
+      "module": "./src/three/plugins/index.js",
       "import": "./build/index.three-plugins.js"
     },
     "./src/*": {
